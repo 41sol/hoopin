@@ -97,6 +97,19 @@
     width: 18px; height: 3px; border-radius: 3px; background: var(--brand);
   }
 
+  /* Range slider (evaluation sliders) */
+  .hp-range {
+    -webkit-appearance: none; appearance: none; height: 10px; border-radius: 6px; outline: none;
+    background: linear-gradient(to right, var(--brand) var(--pct), var(--track) var(--pct));
+  }
+  .hp-range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 26px; height: 26px; border-radius: 50%;
+    background: #fff; border: 4px solid var(--brand); cursor: grab; box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  }
+  .hp-range::-moz-range-thumb {
+    width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 4px solid var(--brand); cursor: grab;
+  }
+
   h1, h2, h3, p { text-wrap: pretty; }
   button { -webkit-tap-highlight-color: transparent; }
 </style>
@@ -114,7 +127,7 @@
   /* ============================================================
      THEME — fixed defaults from the prototype's TWEAK_DEFAULTS
      ============================================================ */
-  const TWEAKS = { sport: "football", skillDisplay: "bars", navStyle: "labels" };
+  const TWEAKS = { sport: "football", skillDisplay: "bars", navStyle: "labels", evalControl: "stars" };
 
   /* ============================================================
      DATA — squad, skills, attendance, UI strings (EN)
@@ -165,10 +178,15 @@
 
   const S = {
     nav_squad: "Squad", nav_eval: "Evaluate", nav_lineup: "Lineup", nav_journey: "Journey", nav_board: "Board",
-    squad_title: "Squad", skills: "Skill ratings", recent: "Recent attendance",
-    edit: "Edit", save: "Save", coach_view: "Coach view",
+    squad_title: "Squad", eval_title: "Session Evaluation",
+    skills: "Skill ratings", recent: "Recent attendance",
+    edit: "Edit", save: "Save", saved: "Saved", coach_view: "Coach view",
     avail_in: "Available", avail_maybe: "Maybe", avail_out: "Unavailable",
     age: "Age", height: "Height", weight: "Weight", foot: "Foot", overall: "Overall",
+    // Evaluation (Screen 2)
+    submit: "Submit evaluation", select_player: "Select player", rate: "Rate", years: "yrs",
+    technical: "Technical Skill", tactical: "Tactical Awareness", workrate: "Work Rate", discipline: "Discipline & Attitude",
+    notes: "Coach notes", notes_ph: "Add a quick note…",
   };
 
   /* ============================================================
@@ -180,6 +198,9 @@
     lineup: "M4 4h16v16H4zM4 12h16M9 4v4M15 4v4M9 16v4M15 16v4",
     journey: "M3 3v18h18M7 14l4-4 3 3 5-6",
     board: "M3 11l16-6v14L3 13v-2zM3 11v2M8 12.5V18a2 2 0 0 0 4 0",
+    star: "M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z",
+    flame: "M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-2.5C9 11 10 9 12 3z",
+    chevD: "M6 9l6 6 6-6",
     check: "M5 13l4 4L19 7",
     x: "M6 6l12 12M18 6L6 18",
     chevL: "M15 18l-6-6 6-6",
@@ -312,6 +333,40 @@
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <h3 style={{ margin: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)" }}>{children}</h3>
         {action}
+      </div>
+    );
+  }
+
+  /* Star rating (interactive) */
+  function StarRating({ value, onChange, max = 5, size = 34 }) {
+    return (
+      <div style={{ display: "flex", gap: 6 }}>
+        {Array.from({ length: max }).map((_, i) => {
+          const active = i < value;
+          return (
+            <button key={i} onClick={() => onChange(i + 1 === value ? 0 : i + 1)}
+              aria-label={`${i + 1} stars`}
+              style={{ border: "none", background: "none", padding: 2, cursor: "pointer", lineHeight: 0 }}>
+              <Icon name="star" size={size} stroke={1.6}
+                fill={active ? "current" : "none"}
+                color={active ? "var(--brand)" : "var(--line-strong)"} />
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  /* Slider (interactive, 0-100) */
+  function RangeRow({ value, onChange, min = 0, max = 100 }) {
+    const pct = ((value - min) / (max - min)) * 100;
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <input type="range" min={min} max={max} value={value}
+          onChange={e => onChange(+e.target.value)}
+          className="hp-range"
+          style={{ flex: 1, "--pct": pct + "%" }} />
+        <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 18, color: "var(--brand)", minWidth: 34, textAlign: "end" }}>{value}</span>
       </div>
     );
   }
@@ -506,6 +561,127 @@
   };
 
   /* ============================================================
+     SCREEN 2 — Session / Match Evaluation Form
+     ============================================================ */
+  const primaryBtn = {
+    border: "none", background: "var(--brand)", color: "#fff", borderRadius: 16, padding: "15px 24px",
+    fontFamily: "inherit", fontSize: 15.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 16px var(--brand-glow)",
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+  };
+
+  function EvaluateScreen({ t, tweaks }) {
+    const players = PLAYERS;
+    const [picking, setPicking] = useState(false);
+    const [pid, setPid] = useState(players[0].id);
+    const [ratings, setRatings] = useState({ technical: 0, tactical: 0, workrate: 0, discipline: 0 });
+    const [note, setNote] = useState("");
+    const [done, setDone] = useState(false);
+
+    const player = players.find(p => p.id === pid);
+    const useStars = tweaks.evalControl === "stars";
+    const criteria = [
+      { key: "technical", label: t.technical, icon: "football" },
+      { key: "tactical", label: t.tactical, icon: "lineup" },
+      { key: "workrate", label: t.workrate, icon: "flame" },
+      { key: "discipline", label: t.discipline, icon: "whistle" },
+    ];
+    const filled = Object.values(ratings).filter(v => v > 0).length;
+    const ready = filled === 4;
+
+    const setR = (k, v) => setRatings(r => ({ ...r, [k]: v }));
+
+    if (done) {
+      return (
+        <div style={{ padding: "60px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 84, height: 84, borderRadius: "50%", background: "var(--brand-tint)", display: "flex", alignItems: "center", justifyContent: "center", animation: "hp-pop .4s cubic-bezier(.2,1.3,.4,1)" }}>
+            <Icon name="check" size={44} color="var(--brand)" stroke={3} />
+          </div>
+          <div>
+            <h2 style={{ margin: "0 0 6px", fontFamily: "Sora", fontWeight: 800, fontSize: 22, color: "var(--ink)" }}>{t.saved}!</h2>
+            <p style={{ margin: 0, color: "var(--muted)", fontSize: 14.5, maxWidth: 240 }}>
+              Evaluation for <strong style={{ color: "var(--ink)" }}>{player.name}</strong> synced to their performance profile.
+            </p>
+          </div>
+          <button onClick={() => { setDone(false); setRatings({ technical: 0, tactical: 0, workrate: 0, discipline: 0 }); setNote(""); }}
+            style={primaryBtn}>{t.rate} another player</button>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ padding: "0 16px 16px" }}>
+        {/* Player selector */}
+        <SectionLabel>{t.select_player}</SectionLabel>
+        <Card pad={10} onClick={() => setPicking(p => !p)} style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", marginBottom: picking ? 8 : 16 }}>
+          <Avatar name={player.name} num={player.num} size={46} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 15.5, color: "var(--ink)" }}>{player.name}</div>
+            <div style={{ fontSize: 12.5, color: "var(--muted)", fontWeight: 600 }}>#{player.num} · {player.pos} · {player.age} {t.years}</div>
+          </div>
+          <Icon name="chevD" size={20} color="var(--muted)" style={{ transform: picking ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+        </Card>
+        {picking && (
+          <Card pad={6} style={{ marginBottom: 16, maxHeight: 230, overflowY: "auto" }}>
+            {players.map(p => (
+              <div key={p.id} onClick={() => { setPid(p.id); setPicking(false); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px", borderRadius: 12, cursor: "pointer", background: p.id === pid ? "var(--brand-tint)" : "transparent" }}>
+                <Avatar name={p.name} size={34} />
+                <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{p.name}</span>
+                <Pill color="brand">{p.pos}</Pill>
+                {p.id === pid && <Icon name="check" size={16} color="var(--brand)" stroke={3} />}
+              </div>
+            ))}
+          </Card>
+        )}
+
+        {/* Progress */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <div style={{ flex: 1, height: 6, borderRadius: 6, background: "var(--track)", overflow: "hidden" }}>
+            <div style={{ width: (filled / 4 * 100) + "%", height: "100%", background: "var(--brand)", borderRadius: 6, transition: "width .3s" }} />
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", fontFamily: "Sora" }}>{filled}/4</span>
+        </div>
+
+        {/* Criteria */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {criteria.map(c => (
+            <Card key={c.key} pad={14}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: useStars ? 12 : 6 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--brand-tint)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Icon name={c.icon} size={18} color="var(--brand)" />
+                </div>
+                <span style={{ flex: 1, fontWeight: 700, fontSize: 14.5, color: "var(--ink)" }}>{c.label}</span>
+                {useStars && ratings[c.key] > 0 && <span style={{ fontFamily: "Sora", fontWeight: 800, color: "var(--brand)", fontSize: 15 }}>{ratings[c.key]}.0</span>}
+              </div>
+              {useStars ? (
+                <StarRating value={ratings[c.key]} onChange={v => setR(c.key, v)} />
+              ) : (
+                <RangeRow value={ratings[c.key] === 0 ? 50 : ratings[c.key]} onChange={v => setR(c.key, v)} />
+              )}
+            </Card>
+          ))}
+        </div>
+
+        {/* Notes */}
+        <div style={{ marginTop: 14 }}>
+          <SectionLabel>{t.notes}</SectionLabel>
+          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder={t.notes_ph}
+            rows={3} style={{
+              width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 16,
+              padding: 14, fontFamily: "inherit", fontSize: 14, color: "var(--ink)", background: "var(--card)",
+              resize: "none", outline: "none",
+            }} />
+        </div>
+
+        <button disabled={!ready} onClick={() => setDone(true)}
+          style={{ ...primaryBtn, marginTop: 16, width: "100%", opacity: ready ? 1 : .45, cursor: ready ? "pointer" : "not-allowed" }}>
+          {t.submit}
+        </button>
+      </div>
+    );
+  }
+
+  /* ============================================================
      APP SHELL — status bar, header, content, bottom nav
      ============================================================ */
   const TABS = [
@@ -548,7 +724,7 @@
     const goTab = (id) => { setTab(id); setPlayerId(null); };
 
     const titleMap = {
-      squad: t.squad_title, eval: t.nav_eval, lineup: t.nav_lineup, journey: t.nav_journey, board: t.nav_board,
+      squad: t.squad_title, eval: t.eval_title, lineup: t.nav_lineup, journey: t.nav_journey, board: t.nav_board,
     };
     const selPlayer = playerId ? PLAYERS.find(p => p.id === playerId) : null;
 
@@ -556,6 +732,7 @@
     if (tab === "squad") content = selPlayer
       ? <ProfileDetail t={t} tweaks={tweaks} player={selPlayer} onBack={() => setPlayerId(null)} />
       : <SquadScreen t={t} tweaks={tweaks} openPlayer={setPlayerId} />;
+    else if (tab === "eval") content = <EvaluateScreen t={t} tweaks={tweaks} />;
     else content = <Placeholder label={titleMap[tab]} />;
 
     const showBack = tab === "squad" && selPlayer;
