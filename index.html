@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hoopin — Squad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #16261d 0%, transparent 60%),
+      #0a100d;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+  }
+
+  /* Default theme: brand green + light neutrals (prototype TWEAK_DEFAULTS) */
+  .hp-phone {
+    --app-bg: #F1F5F2; --card: #FFFFFF; --ink: #0E1512; --muted: #5E6E66;
+    --line: #E8EDEA; --line-strong: #CCD6D1; --track: #F2F5F3;
+    --shadow: 0 1px 2px rgba(13,30,22,.05), 0 1px 1px rgba(13,30,22,.04);
+    --brand: #16A35A; --brand-deep: #0B6E45; --brand-tint: rgba(22,163,90,.12); --brand-glow: rgba(22,163,90,.32);
+  }
+
+  .hp-stage {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+
+  .hp-phone {
+    width: 390px; height: 844px; flex-shrink: 0;
+    background: var(--app-bg);
+    border-radius: 46px;
+    box-shadow: 0 0 0 11px #0c0c0e, 0 0 0 13px #25282b, 0 40px 80px -20px rgba(0,0,0,.7);
+    display: flex; flex-direction: column;
+    overflow: hidden; position: relative;
+    transform-origin: center center;
+    color: var(--ink);
+  }
+
+  .hp-status {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 26px 6px; font-size: 13px; color: var(--ink); flex-shrink: 0;
+  }
+
+  .hp-header {
+    display: flex; align-items: center; gap: 11px;
+    padding: 6px 16px 12px; flex-shrink: 0;
+    border-bottom: 1px solid var(--line);
+    background: var(--app-bg);
+  }
+  .hp-iconbtn {
+    width: 36px; height: 36px; border-radius: 11px; border: none; background: transparent;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink);
+    flex-shrink: 0; padding: 0;
+  }
+  .hp-iconbtn:hover { background: var(--track); }
+
+  .hp-content {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding-top: 14px; padding-bottom: 18px;
+    background: var(--app-bg);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .hp-content::-webkit-scrollbar { display: none; }
+
+  @keyframes hp-pop { 0% { transform: scale(.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+  .hp-nav {
+    display: flex; align-items: stretch; flex-shrink: 0;
+    padding: 8px 6px 22px;
+    background: var(--card);
+    border-top: 1px solid var(--line);
+    position: relative;
+  }
+  .hp-nav::after {
+    content: ""; position: absolute; bottom: 9px; left: 50%; transform: translateX(-50%);
+    width: 128px; height: 5px; border-radius: 3px; background: var(--ink); opacity: .18;
+  }
+  .hp-tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; cursor: pointer; padding: 7px 0 6px;
+    font-family: inherit; font-size: 10.5px; font-weight: 700; position: relative;
+    transition: transform .12s;
+  }
+  .hp-tab:active { transform: scale(.92); }
+  .hp-tab-dot {
+    position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 3px; border-radius: 3px; background: var(--brand);
+  }
+
+  h1, h2, h3, p { text-wrap: pretty; }
+  button { -webkit-tap-highlight-color: transparent; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+  <script type="text/babel" data-presets="react">
+  const { useState, useEffect } = React;
+
+  /* ============================================================
+     THEME — fixed defaults from the prototype's TWEAK_DEFAULTS
+     ============================================================ */
+  const TWEAKS = { sport: "football", skillDisplay: "bars", navStyle: "labels" };
+
+  /* ============================================================
+     DATA — squad, skills, attendance, UI strings (EN)
+     ============================================================ */
+  const SKILLS = [
+    { key: "passing",   label: "Passing" },
+    { key: "shooting",  label: "Shooting" },
+    { key: "dribbling", label: "Dribbling" },
+    { key: "stamina",   label: "Stamina" },
+  ];
+
+  const PLAYERS = [
+    { id: "p1", name: "Karim Haddad",   num: 10, pos: "CAM", line: "MID", age: 15, height: 172, weight: 61, foot: "Right",
+      skills: { passing: 88, shooting: 74, dribbling: 91, stamina: 79 }, avail: "in", attendance: 0.94 },
+    { id: "p2", name: "Rami Khalil",    num: 7,  pos: "RW",  line: "FWD", age: 16, height: 176, weight: 66, foot: "Left",
+      skills: { passing: 79, shooting: 85, dribbling: 88, stamina: 83 }, avail: "in", attendance: 0.88 },
+    { id: "p3", name: "Jad Mansour",    num: 9,  pos: "ST",  line: "FWD", age: 15, height: 178, weight: 68, foot: "Right",
+      skills: { passing: 71, shooting: 92, dribbling: 80, stamina: 77 }, avail: "maybe", attendance: 0.79 },
+    { id: "p4", name: "Elie Saad",      num: 4,  pos: "CB",  line: "DEF", age: 16, height: 183, weight: 73, foot: "Right",
+      skills: { passing: 75, shooting: 52, dribbling: 61, stamina: 86 }, avail: "in", attendance: 0.97 },
+    { id: "p5", name: "Nour Fares",     num: 6,  pos: "CDM", line: "MID", age: 15, height: 170, weight: 60, foot: "Right",
+      skills: { passing: 84, shooting: 60, dribbling: 72, stamina: 90 }, avail: "in", attendance: 0.91 },
+    { id: "p6", name: "Tarek Aoun",     num: 11, pos: "LW",  line: "FWD", age: 14, height: 165, weight: 54, foot: "Left",
+      skills: { passing: 70, shooting: 78, dribbling: 86, stamina: 75 }, avail: "out", attendance: 0.66 },
+    { id: "p7", name: "Sami Rizk",      num: 2,  pos: "RB",  line: "DEF", age: 16, height: 174, weight: 64, foot: "Right",
+      skills: { passing: 77, shooting: 55, dribbling: 70, stamina: 88 }, avail: "in", attendance: 0.85 },
+    { id: "p8", name: "Ziad Daher",     num: 1,  pos: "GK",  line: "GK",  age: 16, height: 185, weight: 75, foot: "Right",
+      skills: { passing: 68, shooting: 40, dribbling: 50, stamina: 80 }, avail: "in", attendance: 0.93 },
+    { id: "p9", name: "Marwan Issa",    num: 8,  pos: "CM",  line: "MID", age: 15, height: 171, weight: 62, foot: "Right",
+      skills: { passing: 86, shooting: 66, dribbling: 78, stamina: 84 }, avail: "maybe", attendance: 0.82 },
+    { id: "p10", name: "Hadi Najjar",   num: 3,  pos: "LB",  line: "DEF", age: 15, height: 169, weight: 58, foot: "Left",
+      skills: { passing: 73, shooting: 50, dribbling: 66, stamina: 87 }, avail: "in", attendance: 0.9 },
+    { id: "p11", name: "Bassel Kassem", num: 14, pos: "ST",  line: "FWD", age: 14, height: 167, weight: 56, foot: "Right",
+      skills: { passing: 66, shooting: 81, dribbling: 75, stamina: 72 }, avail: "out", attendance: 0.7 },
+    { id: "p12", name: "Omar Sleiman",  num: 5,  pos: "CB",  line: "DEF", age: 16, height: 181, weight: 71, foot: "Right",
+      skills: { passing: 72, shooting: 48, dribbling: 58, stamina: 85 }, avail: "in", attendance: 0.95 },
+  ];
+
+  const ATTENDANCE_LOG = [
+    { date: "Jun 18", type: "Training", status: "present" },
+    { date: "Jun 15", type: "Match · vs Sagesse",  status: "present" },
+    { date: "Jun 13", type: "Training", status: "present" },
+    { date: "Jun 11", type: "Training", status: "late" },
+    { date: "Jun 8",  type: "Match · vs Homenetmen", status: "absent" },
+    { date: "Jun 6",  type: "Training", status: "present" },
+    { date: "Jun 4",  type: "Training", status: "present" },
+  ];
+
+  const S = {
+    nav_squad: "Squad", nav_eval: "Evaluate", nav_lineup: "Lineup", nav_journey: "Journey", nav_board: "Board",
+    squad_title: "Squad", skills: "Skill ratings", recent: "Recent attendance",
+    edit: "Edit", save: "Save", coach_view: "Coach view",
+    avail_in: "Available", avail_maybe: "Maybe", avail_out: "Unavailable",
+    age: "Age", height: "Height", weight: "Weight", foot: "Foot", overall: "Overall",
+  };
+
+  /* ============================================================
+     UI KIT — icons + shared components
+     ============================================================ */
+  const ICON = {
+    squad: "M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.87M7 7a4 4 0 1 0 8 0 4 4 0 0 0-8 0M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2",
+    eval: "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 14l2 2 4-4",
+    lineup: "M4 4h16v16H4zM4 12h16M9 4v4M15 4v4M9 16v4M15 16v4",
+    journey: "M3 3v18h18M7 14l4-4 3 3 5-6",
+    board: "M3 11l16-6v14L3 13v-2zM3 11v2M8 12.5V18a2 2 0 0 0 4 0",
+    check: "M5 13l4 4L19 7",
+    x: "M6 6l12 12M18 6L6 18",
+    chevL: "M15 18l-6-6 6-6",
+    chevR: "M9 6l6 6-6 6",
+    plus: "M12 5v14M5 12h14",
+    edit: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
+    football: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 8l3.5 2.5-1.3 4.1h-4.4L8.5 10.5z",
+    basketball: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM2 12h20M12 2v20M5 5c3 2.5 4 5 4 7s-1 4.5-4 7M19 5c-3 2.5-4 5-4 7s1 4.5 4 7",
+    clock: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
+    bell: "M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",
+    search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3",
+    whistle: "M3 12a5 5 0 0 0 5 5h3l6 3v-9a4 4 0 0 0-4-4H8a5 5 0 0 0-5 5zM18 9V6M16 5l2-2",
+  };
+  function Icon({ name, size = 22, stroke = 2, fill = "none", color = "currentColor", style }) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill={fill === "current" ? color : "none"}
+        stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round"
+        style={{ flexShrink: 0, ...style }}>
+        <path d={ICON[name] || ""} />
+      </svg>
+    );
+  }
+
+  const AV_COLORS = [
+    ["#16A35A", "#0B6E45"], ["#FF6B2C", "#C2410C"], ["#2563EB", "#1E40AF"],
+    ["#7C3AED", "#5B21B6"], ["#0891B2", "#155E75"], ["#DB2777", "#9D174D"],
+    ["#CA8A04", "#854D0E"], ["#DC2626", "#991B1B"],
+  ];
+  function initials(name) {
+    return name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  }
+  function Avatar({ name, size = 44, num, ring }) {
+    const idx = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % AV_COLORS.length;
+    const [c1, c2] = AV_COLORS[idx];
+    return (
+      <div style={{
+        width: size, height: size, borderRadius: size * 0.32, flexShrink: 0,
+        background: `linear-gradient(145deg, ${c1}, ${c2})`, color: "#fff",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "Sora, sans-serif", fontWeight: 700, fontSize: size * 0.38,
+        position: "relative", boxShadow: ring ? `0 0 0 3px ${ring}` : "none",
+        letterSpacing: "-0.02em",
+      }}>
+        {initials(name)}
+        {num != null && (
+          <span style={{
+            position: "absolute", bottom: -4, insetInlineEnd: -4, minWidth: 18, height: 18, padding: "0 4px",
+            borderRadius: 9, background: "var(--ink)", color: "var(--card)", fontSize: 10.5,
+            fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
+            border: "2px solid var(--card)", fontFamily: "Sora, sans-serif",
+          }}>{num}</span>
+        )}
+      </div>
+    );
+  }
+
+  const AVAIL = {
+    in:    { color: "#16A35A", bg: "rgba(22,163,90,.12)" },
+    maybe: { color: "#CA8A04", bg: "rgba(202,138,4,.14)" },
+    out:   { color: "#DC2626", bg: "rgba(220,38,38,.12)" },
+  };
+  function AvailDot({ state, size = 9 }) {
+    return <span style={{ width: size, height: size, borderRadius: "50%", background: AVAIL[state].color, flexShrink: 0, boxShadow: `0 0 0 3px ${AVAIL[state].bg}` }} />;
+  }
+
+  function ratingColor(v) {
+    if (v >= 85) return "var(--brand)";
+    if (v >= 70) return "#16A35A";
+    if (v >= 55) return "#CA8A04";
+    return "#DC2626";
+  }
+  function SkillBar({ label, value }) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{label}</span>
+          <span style={{ fontFamily: "Sora", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{value}</span>
+        </div>
+        <div style={{ height: 8, borderRadius: 8, background: "var(--track)", overflow: "hidden" }}>
+          <div style={{ width: value + "%", height: "100%", borderRadius: 8, background: ratingColor(value), transition: "width .5s cubic-bezier(.2,.8,.2,1)" }} />
+        </div>
+      </div>
+    );
+  }
+  function SkillChip({ label, value }) {
+    const c = ratingColor(value);
+    return (
+      <div style={{
+        display: "flex", flexDirection: "column", gap: 2, padding: "10px 12px", borderRadius: 14,
+        background: "var(--track)", border: "1px solid var(--line)", minWidth: 0,
+      }}>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+          <span style={{ fontFamily: "Sora", fontSize: 22, fontWeight: 800, color: c, lineHeight: 1 }}>{value}</span>
+          <span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 600 }}>/100</span>
+        </div>
+      </div>
+    );
+  }
+
+  function Pill({ children, color = "muted", solid }) {
+    const map = {
+      brand: ["var(--brand)", "var(--brand-tint)"],
+      accent: ["#FF6B2C", "rgba(255,107,44,.13)"],
+      blue: ["#2563EB", "rgba(37,99,235,.12)"],
+      green: ["#16A35A", "rgba(22,163,90,.12)"],
+      muted: ["var(--muted)", "var(--track)"],
+    };
+    const [fg, bg] = map[color] || map.muted;
+    return (
+      <span style={{
+        display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 999,
+        fontSize: 11.5, fontWeight: 700, letterSpacing: ".01em",
+        color: solid ? "#fff" : fg, background: solid ? fg : bg, whiteSpace: "nowrap",
+      }}>{children}</span>
+    );
+  }
+
+  function Card({ children, style, pad = 16, ...rest }) {
+    return (
+      <div {...rest} style={{
+        background: "var(--card)", borderRadius: 20, padding: pad,
+        border: "1px solid var(--line)", boxShadow: "var(--shadow)", ...style,
+      }}>{children}</div>
+    );
+  }
+
+  function SectionLabel({ children, action }) {
+    return (
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <h3 style={{ margin: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)" }}>{children}</h3>
+        {action}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     SCREEN 1 — Squad list + Player Performance Profile
+     ============================================================ */
+  function overall(skills) {
+    const v = Object.values(skills);
+    return Math.round(v.reduce((a, b) => a + b, 0) / v.length);
+  }
+
+  function SquadScreen({ t, tweaks, openPlayer }) {
+    const players = PLAYERS;
+    const [q, setQ] = useState("");
+    const list = players.filter(p => p.name.toLowerCase().includes(q.toLowerCase()));
+    const lines = ["GK", "DEF", "MID", "FWD"];
+    const lineLabel = { GK: "Goalkeeper", DEF: "Defenders", MID: "Midfielders", FWD: "Forwards" };
+
+    return (
+      <div style={{ padding: "0 16px 16px" }}>
+        <div style={{
+          position: "relative", marginBottom: 16, display: "flex", alignItems: "center",
+          background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, padding: "0 12px",
+        }}>
+          <Icon name="search" size={18} color="var(--muted)" />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search players…"
+            style={{
+              border: "none", outline: "none", background: "none", flex: 1, padding: "12px 10px",
+              fontFamily: "inherit", fontSize: 14.5, color: "var(--ink)",
+            }} />
+        </div>
+
+        {lines.map(line => {
+          const group = list.filter(p => p.line === line);
+          if (!group.length) return null;
+          return (
+            <div key={line} style={{ marginBottom: 18 }}>
+              <SectionLabel>{lineLabel[line]} · {group.length}</SectionLabel>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {group.map(p => (
+                  <Card key={p.id} pad={10} onClick={() => openPlayer(p.id)}
+                    style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                    <Avatar name={p.name} num={p.num} size={46} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
+                        <Pill color="brand">{p.pos}</Pill>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>
+                          <AvailDot state={p.avail} />{t["avail_" + p.avail]}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "end", display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                      <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 20, color: ratingColor(overall(p.skills)), lineHeight: 1 }}>{overall(p.skills)}</span>
+                      <span style={{ fontSize: 9.5, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>{t.overall}</span>
+                    </div>
+                    <Icon name="chevR" size={18} color="var(--line-strong)" style={{ marginInlineStart: -2 }} />
+                  </Card>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function ProfileDetail({ t, tweaks, player, onBack }) {
+    const [editing, setEditing] = useState(false);
+    const [skills, setSkills] = useState(player.skills);
+    const bump = (k, d) => setSkills(s => ({ ...s, [k]: Math.max(0, Math.min(100, s[k] + d)) }));
+    const ov = overall(skills);
+
+    const statBox = (label, value, unit) => (
+      <div style={{ flex: 1, textAlign: "center", padding: "10px 4px" }}>
+        <div style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 19, color: "var(--ink)" }}>{value}<span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600 }}>{unit}</span></div>
+        <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em", marginTop: 2 }}>{label}</div>
+      </div>
+    );
+
+    return (
+      <div style={{ paddingBottom: 16 }}>
+        {/* Hero */}
+        <div style={{
+          margin: "0 16px 16px", borderRadius: 24, padding: "18px 18px 16px",
+          background: "linear-gradient(150deg, var(--brand), var(--brand-deep))", color: "#fff", position: "relative", overflow: "hidden",
+        }}>
+          <div style={{ position: "absolute", insetInlineEnd: -30, top: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,.08)" }} />
+          <div style={{ position: "absolute", insetInlineEnd: 30, bottom: -50, width: 110, height: 110, borderRadius: "50%", background: "rgba(255,255,255,.07)" }} />
+          <div style={{ display: "flex", gap: 14, alignItems: "center", position: "relative" }}>
+            <Avatar name={player.name} size={68} ring="rgba(255,255,255,.35)" />
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h2 style={{ margin: 0, fontFamily: "Sora", fontSize: 21, fontWeight: 800, letterSpacing: "-0.01em" }}>{player.name}</h2>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                <span style={{ background: "rgba(255,255,255,.2)", padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>#{player.num} · {player.pos}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, background: "rgba(255,255,255,.16)", padding: "3px 9px", borderRadius: 999 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: AVAIL[player.avail].color, boxShadow: "0 0 0 2px rgba(255,255,255,.4)" }} />
+                  {t["avail_" + player.avail]}
+                </span>
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 30, lineHeight: 1 }}>{ov}</div>
+              <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", opacity: .85 }}>{t.overall}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", marginTop: 14, background: "rgba(255,255,255,.13)", borderRadius: 14, backdropFilter: "blur(4px)" }}>
+            {statBox(t.age, player.age, "")}
+            <div style={{ width: 1, background: "rgba(255,255,255,.18)", margin: "8px 0" }} />
+            {statBox(t.height, player.height, "cm")}
+            <div style={{ width: 1, background: "rgba(255,255,255,.18)", margin: "8px 0" }} />
+            {statBox(t.weight, player.weight, "kg")}
+            <div style={{ width: 1, background: "rgba(255,255,255,.18)", margin: "8px 0" }} />
+            {statBox(t.foot, player.foot, "")}
+          </div>
+        </div>
+
+        {/* Skills */}
+        <div style={{ padding: "0 16px" }}>
+          <Card style={{ marginBottom: 14 }}>
+            <SectionLabel action={
+              <button onClick={() => setEditing(e => !e)} style={{
+                display: "inline-flex", alignItems: "center", gap: 5, border: "1px solid var(--line)",
+                background: editing ? "var(--brand)" : "var(--card)", color: editing ? "#fff" : "var(--brand)",
+                borderColor: editing ? "var(--brand)" : "var(--line)",
+                padding: "5px 11px", borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}>
+                <Icon name={editing ? "check" : "edit"} size={13} stroke={2.4} />{editing ? t.save : t.edit}
+              </button>
+            }>{t.skills}</SectionLabel>
+
+            {editing ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {SKILLS.map(s => (
+                  <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{s.label}</span>
+                    <button onClick={() => bump(s.key, -1)} style={stepBtn}><Icon name="x" size={14} stroke={2.6} /></button>
+                    <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 18, color: ratingColor(skills[s.key]), minWidth: 30, textAlign: "center" }}>{skills[s.key]}</span>
+                    <button onClick={() => bump(s.key, +1)} style={stepBtn}><Icon name="plus" size={14} stroke={2.6} /></button>
+                  </div>
+                ))}
+              </div>
+            ) : tweaks.skillDisplay === "chips" ? (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {SKILLS.map(s => <SkillChip key={s.key} label={s.label} value={skills[s.key]} />)}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {SKILLS.map(s => <SkillBar key={s.key} label={s.label} value={skills[s.key]} />)}
+              </div>
+            )}
+            {editing && <div style={{ marginTop: 12, fontSize: 11.5, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6 }}>
+              <Icon name="whistle" size={14} color="var(--brand)" /> {t.coach_view} · changes sync to the player's profile
+            </div>}
+          </Card>
+
+          {/* Attendance */}
+          <Card>
+            <SectionLabel action={<span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 15, color: "var(--brand)" }}>{Math.round(player.attendance * 100)}%</span>}>{t.recent}</SectionLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {ATTENDANCE_LOG.map((a, i) => {
+                const map = { present: ["#16A35A", "check", "Present"], late: ["#CA8A04", "clock", "Late"], absent: ["#DC2626", "x", "Absent"] };
+                const [c, ic, lab] = map[a.status];
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: i < ATTENDANCE_LOG.length - 1 ? "1px solid var(--line)" : "none" }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 9, background: c + "22", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon name={ic} size={15} color={c} stroke={2.6} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{a.type}</div>
+                    </div>
+                    <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{a.date}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: c, minWidth: 52, textAlign: "end" }}>{lab}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const stepBtn = {
+    width: 32, height: 32, borderRadius: 10, border: "1px solid var(--line)", background: "var(--track)",
+    color: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+  };
+
+  /* ============================================================
+     APP SHELL — status bar, header, content, bottom nav
+     ============================================================ */
+  const TABS = [
+    { id: "squad", icon: "squad", key: "nav_squad" },
+    { id: "eval", icon: "eval", key: "nav_eval" },
+    { id: "lineup", icon: "lineup", key: "nav_lineup" },
+    { id: "journey", icon: "journey", key: "nav_journey" },
+    { id: "board", icon: "board", key: "nav_board" },
+  ];
+
+  function Placeholder({ label }) {
+    return (
+      <div style={{ padding: "80px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+        <div style={{ width: 64, height: 64, borderRadius: 18, background: "var(--brand-tint)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon name="whistle" size={30} color="var(--brand)" />
+        </div>
+        <div style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 18, color: "var(--ink)" }}>{label}</div>
+        <div style={{ fontSize: 14, color: "var(--muted)", maxWidth: 230 }}>This screen isn't built yet. Screen 1 (Squad) is the current focus.</div>
+      </div>
+    );
+  }
+
+  function App() {
+    const t = S;
+    const tweaks = TWEAKS;
+    const [tab, setTab] = useState("squad");
+    const [playerId, setPlayerId] = useState(null);
+    const [scale, setScale] = useState(1);
+
+    useEffect(() => {
+      const fit = () => {
+        const h = window.innerHeight, w = window.innerWidth;
+        setScale(Math.min(1, (h - 24) / 844, (w - 24) / 390));
+      };
+      fit();
+      window.addEventListener("resize", fit);
+      return () => window.removeEventListener("resize", fit);
+    }, []);
+
+    const goTab = (id) => { setTab(id); setPlayerId(null); };
+
+    const titleMap = {
+      squad: t.squad_title, eval: t.nav_eval, lineup: t.nav_lineup, journey: t.nav_journey, board: t.nav_board,
+    };
+    const selPlayer = playerId ? PLAYERS.find(p => p.id === playerId) : null;
+
+    let content;
+    if (tab === "squad") content = selPlayer
+      ? <ProfileDetail t={t} tweaks={tweaks} player={selPlayer} onBack={() => setPlayerId(null)} />
+      : <SquadScreen t={t} tweaks={tweaks} openPlayer={setPlayerId} />;
+    else content = <Placeholder label={titleMap[tab]} />;
+
+    const showBack = tab === "squad" && selPlayer;
+
+    return (
+      <div className="hp-stage">
+        <div className="hp-phone" style={{ transform: `scale(${scale})` }}>
+          {/* status bar */}
+          <div className="hp-status">
+            <span style={{ fontWeight: 700 }}>9:41</span>
+            <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+              <span style={{ fontSize: 11 }}>5G</span>
+              <svg width="20" height="11" viewBox="0 0 24 12"><rect x="1" y="2" width="19" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1.2" opacity=".5" /><rect x="2.5" y="3.5" width="14" height="5" rx="1" fill="currentColor" /><rect x="21" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".5" /></svg>
+            </div>
+          </div>
+
+          {/* header */}
+          <header className="hp-header">
+            {showBack ? (
+              <button onClick={() => setPlayerId(null)} className="hp-iconbtn"><Icon name="chevL" size={22} /></button>
+            ) : (
+              <div style={{ width: 36, height: 36, borderRadius: 11, background: "var(--brand)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icon name={tweaks.sport === "basketball" ? "basketball" : "football"} size={22} color="#fff" stroke={2} />
+              </div>
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h1 style={{ margin: 0, fontFamily: "Sora", fontSize: 18, fontWeight: 800, color: "var(--ink)", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {showBack ? selPlayer.name : titleMap[tab]}
+              </h1>
+              <div style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 600 }}>Beirut Strikers · U16</div>
+            </div>
+            <button className="hp-iconbtn" style={{ position: "relative" }}>
+              <Icon name="bell" size={20} color="var(--muted)" />
+              <span style={{ position: "absolute", top: 7, insetInlineEnd: 8, width: 7, height: 7, borderRadius: "50%", background: "var(--brand)", border: "1.5px solid var(--card)" }} />
+            </button>
+          </header>
+
+          {/* content */}
+          <main className="hp-content" key={tab + (selPlayer ? selPlayer.id : "")}>
+            {content}
+          </main>
+
+          {/* bottom nav */}
+          <nav className="hp-nav">
+            {TABS.map(tb => {
+              const active = tab === tb.id;
+              return (
+                <button key={tb.id} onClick={() => goTab(tb.id)} className={"hp-tab" + (active ? " active" : "")}>
+                  <Icon name={tb.icon} size={23} stroke={active ? 2.3 : 1.9} color={active ? "var(--brand)" : "var(--muted)"} />
+                  {tweaks.navStyle === "labels" && <span style={{ color: active ? "var(--brand)" : "var(--muted)" }}>{t[tb.key]}</span>}
+                  {active && <span className="hp-tab-dot" />}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

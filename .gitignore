@@ -1,6 +1,9 @@
 # Claude Code local settings
 .claude/
 
+# Internal working notes (not part of the product)
+FEATURES.md
+
 # OS
 .DS_Store
 Thumbs.db
