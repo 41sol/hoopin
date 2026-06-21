@@ -122,7 +122,7 @@
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 
   <script type="text/babel" data-presets="react">
-  const { useState, useEffect } = React;
+  const { useState, useRef, useEffect } = React;
 
   /* ============================================================
      THEME — fixed defaults from the prototype's TWEAK_DEFAULTS
@@ -176,6 +176,49 @@
     { date: "Jun 4",  type: "Training", status: "present" },
   ];
 
+  // Formation templates — coordinates are % within pitch (x across, y down). GK at bottom.
+  const FORMATIONS = {
+    "4-3-3": [
+      { slot: "GK",  x: 50, y: 90, line: "GK" },
+      { slot: "LB",  x: 18, y: 70, line: "DEF" },
+      { slot: "CB",  x: 39, y: 74, line: "DEF" },
+      { slot: "CB",  x: 61, y: 74, line: "DEF" },
+      { slot: "RB",  x: 82, y: 70, line: "DEF" },
+      { slot: "CM",  x: 30, y: 48, line: "MID" },
+      { slot: "CM",  x: 50, y: 52, line: "MID" },
+      { slot: "CM",  x: 70, y: 48, line: "MID" },
+      { slot: "LW",  x: 22, y: 24, line: "FWD" },
+      { slot: "ST",  x: 50, y: 18, line: "FWD" },
+      { slot: "RW",  x: 78, y: 24, line: "FWD" },
+    ],
+    "4-4-2": [
+      { slot: "GK",  x: 50, y: 90, line: "GK" },
+      { slot: "LB",  x: 18, y: 71, line: "DEF" },
+      { slot: "CB",  x: 39, y: 75, line: "DEF" },
+      { slot: "CB",  x: 61, y: 75, line: "DEF" },
+      { slot: "RB",  x: 82, y: 71, line: "DEF" },
+      { slot: "LM",  x: 18, y: 47, line: "MID" },
+      { slot: "CM",  x: 40, y: 50, line: "MID" },
+      { slot: "CM",  x: 60, y: 50, line: "MID" },
+      { slot: "RM",  x: 82, y: 47, line: "MID" },
+      { slot: "ST",  x: 38, y: 20, line: "FWD" },
+      { slot: "ST",  x: 62, y: 20, line: "FWD" },
+    ],
+    "3-5-2": [
+      { slot: "GK",  x: 50, y: 90, line: "GK" },
+      { slot: "CB",  x: 28, y: 74, line: "DEF" },
+      { slot: "CB",  x: 50, y: 77, line: "DEF" },
+      { slot: "CB",  x: 72, y: 74, line: "DEF" },
+      { slot: "LM",  x: 14, y: 48, line: "MID" },
+      { slot: "CM",  x: 35, y: 52, line: "MID" },
+      { slot: "CM",  x: 50, y: 55, line: "MID" },
+      { slot: "CM",  x: 65, y: 52, line: "MID" },
+      { slot: "RM",  x: 86, y: 48, line: "MID" },
+      { slot: "ST",  x: 38, y: 22, line: "FWD" },
+      { slot: "ST",  x: 62, y: 22, line: "FWD" },
+    ],
+  };
+
   const S = {
     nav_squad: "Squad", nav_eval: "Evaluate", nav_lineup: "Lineup", nav_journey: "Journey", nav_board: "Board",
     squad_title: "Squad", eval_title: "Session Evaluation",
@@ -187,6 +230,8 @@
     submit: "Submit evaluation", select_player: "Select player", rate: "Rate", years: "yrs",
     technical: "Technical Skill", tactical: "Tactical Awareness", workrate: "Work Rate", discipline: "Discipline & Attitude",
     notes: "Coach notes", notes_ph: "Add a quick note…",
+    // Lineup (Screen 3)
+    lineup_title: "Match Lineup", roster: "Available", export: "Save lineup", drag_hint: "Drag players onto the pitch",
   };
 
   /* ============================================================
@@ -201,6 +246,7 @@
     star: "M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z",
     flame: "M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-2.5C9 11 10 9 12 3z",
     chevD: "M6 9l6 6 6-6",
+    download: "M12 3v12M7 10l5 5 5-5M5 21h14",
     check: "M5 13l4 4L19 7",
     x: "M6 6l12 12M18 6L6 18",
     chevL: "M15 18l-6-6 6-6",
@@ -367,6 +413,32 @@
           className="hp-range"
           style={{ flex: 1, "--pct": pct + "%" }} />
         <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 18, color: "var(--brand)", minWidth: 34, textAlign: "end" }}>{value}</span>
+      </div>
+    );
+  }
+
+  /* Segmented control */
+  function Segmented({ options, value, onChange, size = "md" }) {
+    return (
+      <div style={{
+        display: "inline-flex", background: "var(--track)", borderRadius: 12, padding: 3, gap: 2,
+        border: "1px solid var(--line)",
+      }}>
+        {options.map(o => {
+          const active = o.value === value;
+          return (
+            <button key={o.value} onClick={() => onChange(o.value)}
+              style={{
+                border: "none", cursor: "pointer", borderRadius: 9,
+                padding: size === "sm" ? "6px 12px" : "8px 16px",
+                fontSize: size === "sm" ? 12.5 : 13.5, fontWeight: 600, fontFamily: "inherit",
+                background: active ? "var(--card)" : "transparent",
+                color: active ? "var(--ink)" : "var(--muted)",
+                boxShadow: active ? "0 1px 3px rgba(0,0,0,.12)" : "none",
+                transition: "all .15s",
+              }}>{o.label}</button>
+          );
+        })}
       </div>
     );
   }
@@ -682,6 +754,209 @@
   }
 
   /* ============================================================
+     SCREEN 3 — Match Lineup Builder (drag & drop)
+     ============================================================ */
+  function autoFill(formation, players) {
+    const slots = FORMATIONS[formation];
+    const used = new Set();
+    const assign = {};
+    slots.forEach((s, i) => {
+      // prefer same line + available, then any available
+      const pick = players.find(p => !used.has(p.id) && p.line === s.line && p.avail !== "out")
+        || players.find(p => !used.has(p.id) && p.line === s.line)
+        || players.find(p => !used.has(p.id) && p.avail !== "out");
+      if (pick) { assign[i] = pick.id; used.add(pick.id); }
+    });
+    return assign;
+  }
+
+  function Token({ player, big }) {
+    const ac = AVAIL[player.avail].color;
+    const sz = big ? 52 : 44;
+    return (
+      <div style={{ position: "relative" }}>
+        <div style={{
+          width: sz, height: sz, borderRadius: 15, background: "#fff",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "Sora", fontWeight: 800, fontSize: sz * 0.4, color: "var(--brand-deep)",
+          boxShadow: `0 3px 8px rgba(0,0,0,.3), 0 0 0 3px ${ac}`,
+        }}>{player.num}</div>
+      </div>
+    );
+  }
+
+  function PitchMarkings() {
+    const line = "rgba(255,255,255,.35)";
+    return (
+      <svg viewBox="0 0 300 400" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+        {[0, 1, 2, 3, 4, 5].map(i => (
+          <rect key={i} x="0" y={i * 66.6} width="300" height="33.3" fill={i % 2 ? "rgba(255,255,255,.04)" : "transparent"} />
+        ))}
+        <g stroke={line} strokeWidth="2" fill="none">
+          <rect x="4" y="4" width="292" height="392" rx="4" />
+          <line x1="4" y1="200" x2="296" y2="200" />
+          <circle cx="150" cy="200" r="42" />
+          <circle cx="150" cy="200" r="2.5" fill={line} stroke="none" />
+          <rect x="90" y="4" width="120" height="56" />
+          <rect x="120" y="4" width="60" height="24" />
+          <rect x="90" y="340" width="120" height="56" />
+          <rect x="120" y="372" width="60" height="24" />
+        </g>
+      </svg>
+    );
+  }
+
+  const tokenName = {
+    fontSize: 10.5, fontWeight: 700, color: "#fff", background: "rgba(0,0,0,.35)", padding: "1px 7px",
+    borderRadius: 999, whiteSpace: "nowrap", maxWidth: 70, overflow: "hidden", textOverflow: "ellipsis",
+  };
+
+  function LineupScreen({ t, tweaks }) {
+    const players = PLAYERS;
+    const byId = id => players.find(p => p.id === id);
+    const [formation, setFormation] = useState("4-3-3");
+    const [assign, setAssign] = useState(() => autoFill("4-3-3", players));
+    const [drag, setDrag] = useState(null); // {pid, x, y, from}
+    const [saved, setSaved] = useState(false);
+    const pitchRef = useRef(null);
+    const dragRef = useRef(null);
+    dragRef.current = drag;
+
+    const slots = FORMATIONS[formation];
+    const assignedIds = new Set(Object.values(assign));
+    const roster = players.filter(p => !assignedIds.has(p.id));
+    const onCount = Object.values(assign).filter(id => byId(id)?.avail === "in").length;
+
+    const changeFormation = (f) => { setFormation(f); setAssign(autoFill(f, players)); };
+
+    const startDrag = (e, pid, from) => {
+      e.preventDefault();
+      const pt = e.touches ? e.touches[0] : e;
+      setDrag({ pid, x: pt.clientX, y: pt.clientY, from });
+    };
+
+    useEffect(() => {
+      if (!drag) return;
+      const move = (e) => {
+        const pt = e.touches ? e.touches[0] : e;
+        setDrag(d => d ? { ...d, x: pt.clientX, y: pt.clientY } : d);
+      };
+      const up = (e) => {
+        const d = dragRef.current;
+        if (!d) return;
+        const pt = e.changedTouches ? e.changedTouches[0] : e;
+        const rect = pitchRef.current.getBoundingClientRect();
+        const inside = pt.clientX >= rect.left && pt.clientX <= rect.right && pt.clientY >= rect.top && pt.clientY <= rect.bottom;
+        if (inside) {
+          // nearest slot
+          let best = -1, bestDist = Infinity;
+          slots.forEach((s, i) => {
+            const sx = rect.left + s.x / 100 * rect.width;
+            const sy = rect.top + s.y / 100 * rect.height;
+            const dist = Math.hypot(sx - pt.clientX, sy - pt.clientY);
+            if (dist < bestDist) { bestDist = dist; best = i; }
+          });
+          setAssign(a => {
+            const na = { ...a };
+            // remove dragged from its old slot
+            if (d.from != null) delete na[d.from];
+            else Object.keys(na).forEach(k => { if (na[k] === d.pid) delete na[k]; });
+            // swap if target occupied
+            const occupant = na[best];
+            if (occupant && d.from != null) na[d.from] = occupant;
+            na[best] = d.pid;
+            return na;
+          });
+        } else if (d.from != null) {
+          // dropped outside -> remove from pitch
+          setAssign(a => { const na = { ...a }; delete na[d.from]; return na; });
+        }
+        setDrag(null);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+    }, [drag ? true : false, formation]);
+
+    return (
+      <div style={{ padding: "0 16px 12px", userSelect: "none", touchAction: "none" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <Segmented size="sm" value={formation}
+            options={Object.keys(FORMATIONS).map(f => ({ value: f, label: f }))}
+            onChange={changeFormation} />
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--muted)" }}>
+            <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#16A35A" }} />{onCount} {t.avail_in.toLowerCase()}
+          </span>
+        </div>
+
+        {/* Pitch */}
+        <div ref={pitchRef} style={{
+          position: "relative", width: "100%", aspectRatio: "3/4", borderRadius: 20, overflow: "hidden",
+          background: "linear-gradient(160deg, #1d9c5e, #14823f)",
+          boxShadow: "var(--shadow)", marginBottom: 14,
+        }}>
+          <PitchMarkings />
+          {slots.map((s, i) => {
+            const pid = assign[i];
+            const p = pid ? byId(pid) : null;
+            const isDragging = drag && drag.from === i;
+            return (
+              <div key={i} style={{
+                position: "absolute", left: s.x + "%", top: s.y + "%", transform: "translate(-50%,-50%)",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 3, opacity: isDragging ? .3 : 1,
+              }}>
+                {p ? (
+                  <div onPointerDown={(e) => startDrag(e, pid, i)} style={{ cursor: "grab", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                    <Token player={p} />
+                    <span style={tokenName}>{p.name.split(" ")[0]}</span>
+                  </div>
+                ) : (
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 14, border: "2px dashed rgba(255,255,255,.6)",
+                    display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.85)",
+                    fontSize: 10.5, fontWeight: 700, background: "rgba(255,255,255,.08)",
+                  }}>{s.slot}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Roster */}
+        <SectionLabel action={<span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{t.drag_hint}</span>}>{t.roster} · {roster.length}</SectionLabel>
+        <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, margin: "0 -16px", padding: "2px 16px 6px" }}>
+          {roster.length === 0 && <span style={{ fontSize: 13, color: "var(--muted)", padding: "8px 0" }}>All players on the pitch.</span>}
+          {roster.map(p => (
+            <div key={p.id} onPointerDown={(e) => startDrag(e, p.id, null)}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "grab", flexShrink: 0, width: 60 }}>
+              <div style={{ position: "relative" }}>
+                <Avatar name={p.name} size={48} />
+                <span style={{ position: "absolute", bottom: -3, insetInlineEnd: -3, width: 14, height: 14, borderRadius: "50%", background: AVAIL[p.avail].color, border: "2.5px solid var(--card)" }} />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 60, textAlign: "center" }}>{p.name.split(" ")[0]}</span>
+              <Pill color="brand">{p.pos}</Pill>
+            </div>
+          ))}
+        </div>
+
+        <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 1800); }}
+          style={{ ...primaryBtn, marginTop: 12, width: "100%" }}>
+          <Icon name={saved ? "check" : "download"} size={18} stroke={2.4} />{saved ? t.saved + "!" : t.export}
+        </button>
+
+        {/* Drag ghost */}
+        {drag && (() => {
+          const p = byId(drag.pid);
+          return ReactDOM.createPortal(
+            <div style={{ position: "fixed", left: drag.x, top: drag.y, transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 9999, opacity: .92 }}>
+              <Token player={p} big />
+            </div>, document.body);
+        })()}
+      </div>
+    );
+  }
+
+  /* ============================================================
      APP SHELL — status bar, header, content, bottom nav
      ============================================================ */
   const TABS = [
@@ -724,7 +999,7 @@
     const goTab = (id) => { setTab(id); setPlayerId(null); };
 
     const titleMap = {
-      squad: t.squad_title, eval: t.eval_title, lineup: t.nav_lineup, journey: t.nav_journey, board: t.nav_board,
+      squad: t.squad_title, eval: t.eval_title, lineup: t.lineup_title, journey: t.nav_journey, board: t.nav_board,
     };
     const selPlayer = playerId ? PLAYERS.find(p => p.id === playerId) : null;
 
@@ -733,6 +1008,7 @@
       ? <ProfileDetail t={t} tweaks={tweaks} player={selPlayer} onBack={() => setPlayerId(null)} />
       : <SquadScreen t={t} tweaks={tweaks} openPlayer={setPlayerId} />;
     else if (tab === "eval") content = <EvaluateScreen t={t} tweaks={tweaks} />;
+    else if (tab === "lineup") content = <LineupScreen t={t} tweaks={tweaks} />;
     else content = <Placeholder label={titleMap[tab]} />;
 
     const showBack = tab === "squad" && selPlayer;
