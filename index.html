@@ -141,30 +141,52 @@
 
   const PLAYERS = [
     { id: "p1", name: "Karim Haddad",   num: 10, pos: "CAM", line: "MID", age: 15, height: 172, weight: 61, foot: "Right",
-      skills: { passing: 88, shooting: 74, dribbling: 91, stamina: 79 }, avail: "in", attendance: 0.94 },
+      skills: { passing: 88, shooting: 74, dribbling: 91, stamina: 79 },
+      radar: { technical: 90, tactical: 82, physical: 71, mental: 84, teamwork: 88 }, avail: "in", attendance: 0.94, trend: [62, 65, 68, 72, 77, 84] },
     { id: "p2", name: "Rami Khalil",    num: 7,  pos: "RW",  line: "FWD", age: 16, height: 176, weight: 66, foot: "Left",
-      skills: { passing: 79, shooting: 85, dribbling: 88, stamina: 83 }, avail: "in", attendance: 0.88 },
+      skills: { passing: 79, shooting: 85, dribbling: 88, stamina: 83 },
+      radar: { technical: 85, tactical: 76, physical: 80, mental: 78, teamwork: 74 }, avail: "in", attendance: 0.88, trend: [70, 69, 73, 75, 78, 82] },
     { id: "p3", name: "Jad Mansour",    num: 9,  pos: "ST",  line: "FWD", age: 15, height: 178, weight: 68, foot: "Right",
-      skills: { passing: 71, shooting: 92, dribbling: 80, stamina: 77 }, avail: "maybe", attendance: 0.79 },
+      skills: { passing: 71, shooting: 92, dribbling: 80, stamina: 77 },
+      radar: { technical: 82, tactical: 70, physical: 84, mental: 80, teamwork: 72 }, avail: "maybe", attendance: 0.79, trend: [58, 63, 66, 64, 71, 79] },
     { id: "p4", name: "Elie Saad",      num: 4,  pos: "CB",  line: "DEF", age: 16, height: 183, weight: 73, foot: "Right",
-      skills: { passing: 75, shooting: 52, dribbling: 61, stamina: 86 }, avail: "in", attendance: 0.97 },
+      skills: { passing: 75, shooting: 52, dribbling: 61, stamina: 86 },
+      radar: { technical: 68, tactical: 88, physical: 90, mental: 85, teamwork: 86 }, avail: "in", attendance: 0.97, trend: [72, 74, 75, 78, 80, 83] },
     { id: "p5", name: "Nour Fares",     num: 6,  pos: "CDM", line: "MID", age: 15, height: 170, weight: 60, foot: "Right",
-      skills: { passing: 84, shooting: 60, dribbling: 72, stamina: 90 }, avail: "in", attendance: 0.91 },
+      skills: { passing: 84, shooting: 60, dribbling: 72, stamina: 90 },
+      radar: { technical: 76, tactical: 86, physical: 82, mental: 88, teamwork: 90 }, avail: "in", attendance: 0.91, trend: [60, 64, 67, 70, 74, 78] },
     { id: "p6", name: "Tarek Aoun",     num: 11, pos: "LW",  line: "FWD", age: 14, height: 165, weight: 54, foot: "Left",
-      skills: { passing: 70, shooting: 78, dribbling: 86, stamina: 75 }, avail: "out", attendance: 0.66 },
+      skills: { passing: 70, shooting: 78, dribbling: 86, stamina: 75 },
+      radar: { technical: 80, tactical: 66, physical: 68, mental: 72, teamwork: 70 }, avail: "out", attendance: 0.66, trend: [55, 58, 57, 62, 66, 70] },
     { id: "p7", name: "Sami Rizk",      num: 2,  pos: "RB",  line: "DEF", age: 16, height: 174, weight: 64, foot: "Right",
-      skills: { passing: 77, shooting: 55, dribbling: 70, stamina: 88 }, avail: "in", attendance: 0.85 },
+      skills: { passing: 77, shooting: 55, dribbling: 70, stamina: 88 },
+      radar: { technical: 72, tactical: 80, physical: 85, mental: 79, teamwork: 82 }, avail: "in", attendance: 0.85, trend: [64, 66, 68, 71, 73, 76] },
     { id: "p8", name: "Ziad Daher",     num: 1,  pos: "GK",  line: "GK",  age: 16, height: 185, weight: 75, foot: "Right",
-      skills: { passing: 68, shooting: 40, dribbling: 50, stamina: 80 }, avail: "in", attendance: 0.93 },
+      skills: { passing: 68, shooting: 40, dribbling: 50, stamina: 80 },
+      radar: { technical: 74, tactical: 84, physical: 86, mental: 90, teamwork: 80 }, avail: "in", attendance: 0.93, trend: [70, 71, 73, 74, 76, 79] },
     { id: "p9", name: "Marwan Issa",    num: 8,  pos: "CM",  line: "MID", age: 15, height: 171, weight: 62, foot: "Right",
-      skills: { passing: 86, shooting: 66, dribbling: 78, stamina: 84 }, avail: "maybe", attendance: 0.82 },
+      skills: { passing: 86, shooting: 66, dribbling: 78, stamina: 84 },
+      radar: { technical: 81, tactical: 83, physical: 76, mental: 82, teamwork: 85 }, avail: "maybe", attendance: 0.82, trend: [61, 63, 67, 69, 72, 77] },
     { id: "p10", name: "Hadi Najjar",   num: 3,  pos: "LB",  line: "DEF", age: 15, height: 169, weight: 58, foot: "Left",
-      skills: { passing: 73, shooting: 50, dribbling: 66, stamina: 87 }, avail: "in", attendance: 0.9 },
+      skills: { passing: 73, shooting: 50, dribbling: 66, stamina: 87 },
+      radar: { technical: 70, tactical: 78, physical: 84, mental: 76, teamwork: 81 }, avail: "in", attendance: 0.9, trend: [62, 64, 66, 68, 71, 74] },
     { id: "p11", name: "Bassel Kassem", num: 14, pos: "ST",  line: "FWD", age: 14, height: 167, weight: 56, foot: "Right",
-      skills: { passing: 66, shooting: 81, dribbling: 75, stamina: 72 }, avail: "out", attendance: 0.7 },
+      skills: { passing: 66, shooting: 81, dribbling: 75, stamina: 72 },
+      radar: { technical: 77, tactical: 64, physical: 70, mental: 74, teamwork: 68 }, avail: "out", attendance: 0.7, trend: [52, 55, 59, 60, 64, 69] },
     { id: "p12", name: "Omar Sleiman",  num: 5,  pos: "CB",  line: "DEF", age: 16, height: 181, weight: 71, foot: "Right",
-      skills: { passing: 72, shooting: 48, dribbling: 58, stamina: 85 }, avail: "in", attendance: 0.95 },
+      skills: { passing: 72, shooting: 48, dribbling: 58, stamina: 85 },
+      radar: { technical: 66, tactical: 86, physical: 88, mental: 83, teamwork: 84 }, avail: "in", attendance: 0.95, trend: [68, 70, 71, 73, 75, 78] },
   ];
+
+  // Radar metrics (grouped) + month labels for trend
+  const METRICS = [
+    { key: "technical", label: "Technical" },
+    { key: "tactical",  label: "Tactical" },
+    { key: "physical",  label: "Physical" },
+    { key: "mental",    label: "Mental" },
+    { key: "teamwork",  label: "Teamwork" },
+  ];
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
 
   const ATTENDANCE_LOG = [
     { date: "Jun 18", type: "Training", status: "present" },
@@ -232,6 +254,9 @@
     notes: "Coach notes", notes_ph: "Add a quick note…",
     // Lineup (Screen 3)
     lineup_title: "Match Lineup", roster: "Available", export: "Save lineup", drag_hint: "Drag players onto the pitch",
+    // Journey (Screen 4)
+    journey_title: "My Journey", overview: "Overview", improving: "Improving",
+    attendance: "Attendance", last_month: "Last month", last_6m: "Last 6 months",
   };
 
   /* ============================================================
@@ -247,6 +272,9 @@
     flame: "M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-2.5C9 11 10 9 12 3z",
     chevD: "M6 9l6 6 6-6",
     download: "M12 3v12M7 10l5 5 5-5M5 21h14",
+    up: "M12 19V5M5 12l7-7 7 7",
+    calendar: "M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+    trophy: "M7 4h10v4a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 0-3 3M9 18h6M10 14v4M14 14v4",
     check: "M5 13l4 4L19 7",
     x: "M6 6l12 12M18 6L6 18",
     chevL: "M15 18l-6-6 6-6",
@@ -957,6 +985,173 @@
   }
 
   /* ============================================================
+     SCREEN 4 — My Journey (player progress dashboard, read-only)
+     ============================================================ */
+  function radarPoints(values, cx, cy, r) {
+    const n = values.length;
+    return values.map((v, i) => {
+      const ang = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      const rr = (v / 100) * r;
+      return [cx + rr * Math.cos(ang), cy + rr * Math.sin(ang)];
+    });
+  }
+
+  function RadarChart({ metrics, data, size = 240 }) {
+    const cx = size / 2, cy = size / 2, r = size / 2 - 38;
+    const n = metrics.length;
+    const rings = [0.25, 0.5, 0.75, 1];
+    const axisPt = (i, mul) => {
+      const ang = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      return [cx + r * mul * Math.cos(ang), cy + r * mul * Math.sin(ang)];
+    };
+    const vals = metrics.map(m => data[m.key]);
+    const pts = radarPoints(vals, cx, cy, r);
+    const poly = pts.map(p => p.join(",")).join(" ");
+
+    return (
+      <svg viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", height: "auto", overflow: "visible" }}>
+        {rings.map((ring, ri) => (
+          <polygon key={ri} fill="none" stroke="var(--line)" strokeWidth="1"
+            points={metrics.map((_, i) => axisPt(i, ring).join(",")).join(" ")} />
+        ))}
+        {metrics.map((_, i) => {
+          const [x, y] = axisPt(i, 1);
+          return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="var(--line)" strokeWidth="1" />;
+        })}
+        <polygon points={poly} fill="var(--brand)" fillOpacity="0.18" stroke="var(--brand)" strokeWidth="2.5" strokeLinejoin="round" />
+        {pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="3.5" fill="var(--brand)" stroke="var(--card)" strokeWidth="2" />)}
+        {metrics.map((m, i) => {
+          const [x, y] = axisPt(i, 1.2);
+          return (
+            <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle"
+              fontSize="11" fontWeight="700" fill="var(--muted)" fontFamily="Plus Jakarta Sans">
+              {m.short}
+            </text>
+          );
+        })}
+      </svg>
+    );
+  }
+
+  function TrendChart({ values, labels, w = 320, h = 130 }) {
+    const pad = { l: 8, r: 8, t: 12, b: 22 };
+    const min = Math.min(...values) - 6, max = Math.max(...values) + 4;
+    const iw = w - pad.l - pad.r, ih = h - pad.t - pad.b;
+    const x = i => pad.l + (i / (values.length - 1)) * iw;
+    const y = v => pad.t + ih - ((v - min) / (max - min)) * ih;
+    const line = values.map((v, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(v)}`).join(" ");
+    const area = `${line} L${x(values.length - 1)},${pad.t + ih} L${x(0)},${pad.t + ih} Z`;
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto" }}>
+        <defs>
+          <linearGradient id="hp-trend" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="var(--brand)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 0.5, 1].map((g, i) => (
+          <line key={i} x1={pad.l} y1={pad.t + ih * g} x2={w - pad.r} y2={pad.t + ih * g} stroke="var(--line)" strokeWidth="1" strokeDasharray={i === 2 ? "0" : "3 4"} />
+        ))}
+        <path d={area} fill="url(#hp-trend)" />
+        <path d={line} fill="none" stroke="var(--brand)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {values.map((v, i) => {
+          const last = i === values.length - 1;
+          return (
+            <g key={i}>
+              <circle cx={x(i)} cy={y(v)} r={last ? 5 : 3.5} fill={last ? "var(--brand)" : "var(--card)"} stroke="var(--brand)" strokeWidth="2.5" />
+              {last && <text x={x(i)} y={y(v) - 12} textAnchor="middle" fontSize="13" fontWeight="800" fill="var(--brand)" fontFamily="Sora">{v}</text>}
+            </g>
+          );
+        })}
+        {labels.map((l, i) => (
+          <text key={i} x={x(i)} y={h - 6} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--muted)" fontFamily="Plus Jakarta Sans">{l}</text>
+        ))}
+      </svg>
+    );
+  }
+
+  const heroStat = {
+    display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700,
+    background: "rgba(255,255,255,.18)", padding: "5px 11px", borderRadius: 999,
+  };
+
+  function JourneyScreen({ t, tweaks }) {
+    const players = PLAYERS;
+    const [pid, setPid] = useState("p1");
+    const [tf, setTf] = useState("6m");
+    const player = players.find(p => p.id === pid);
+
+    const metricsShort = METRICS.map(m => ({ ...m, short: m.label.slice(0, 4) }));
+    const trend6 = player.trend;
+    const labels6 = MONTHS;
+    // last month -> last 4 weeks, interpolate toward latest
+    const lastVal = trend6[trend6.length - 1];
+    const trendM = [lastVal - 5, lastVal - 3, lastVal - 1, lastVal];
+    const labelsM = ["W1", "W2", "W3", "W4"];
+    const values = tf === "6m" ? trend6 : trendM;
+    const labels = tf === "6m" ? labels6 : labelsM;
+    const delta = values[values.length - 1] - values[0];
+
+    return (
+      <div style={{ padding: "0 16px 16px" }}>
+        {/* Player switcher (read-only persona) */}
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "0 -16px", padding: "2px 16px 12px" }}>
+          {players.slice(0, 6).map(p => (
+            <button key={p.id} onClick={() => setPid(p.id)} style={{
+              display: "flex", alignItems: "center", gap: 8, border: "1px solid " + (p.id === pid ? "var(--brand)" : "var(--line)"),
+              background: p.id === pid ? "var(--brand-tint)" : "var(--card)", borderRadius: 999, padding: "5px 12px 5px 5px",
+              cursor: "pointer", flexShrink: 0, fontFamily: "inherit",
+            }}>
+              <Avatar name={p.name} size={26} />
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: p.id === pid ? "var(--brand)" : "var(--muted)" }}>{p.name.split(" ")[0]}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Motivational hero */}
+        <Card style={{ marginBottom: 14, background: "linear-gradient(150deg, var(--brand-deep), var(--brand))", border: "none", color: "#fff", overflow: "hidden", position: "relative" }}>
+          <div style={{ position: "absolute", insetInlineEnd: -20, top: -20, opacity: .14 }}><Icon name="trophy" size={130} stroke={1.2} /></div>
+          <div style={{ position: "relative" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, opacity: .9 }}>Keep it up, {player.name.split(" ")[0]}! 🔥</div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 10, marginTop: 6 }}>
+              <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 44, lineHeight: 1 }}>+{delta}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, opacity: .9, paddingBottom: 8 }}>{t.overall} pts {tf === "6m" ? t.last_6m.toLowerCase() : t.last_month.toLowerCase()}</span>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <span style={heroStat}><Icon name="up" size={13} stroke={2.6} /> {t.improving}</span>
+              <span style={heroStat}><Icon name="calendar" size={13} /> {Math.round(player.attendance * 100)}% {t.attendance.toLowerCase()}</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Radar */}
+        <Card style={{ marginBottom: 14 }}>
+          <SectionLabel>{t.overview}</SectionLabel>
+          <RadarChart metrics={metricsShort} data={player.radar} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+            {METRICS.map(m => (
+              <div key={m.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", background: "var(--track)", borderRadius: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>{m.label}</span>
+                <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 14, color: ratingColor(player.radar[m.key]) }}>{player.radar[m.key]}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Trend */}
+        <Card>
+          <SectionLabel action={
+            <Segmented size="sm" value={tf}
+              options={[{ value: "1m", label: t.last_month }, { value: "6m", label: t.last_6m }]}
+              onChange={setTf} />
+          }>{t.improving}</SectionLabel>
+          <TrendChart values={values} labels={labels} />
+        </Card>
+      </div>
+    );
+  }
+
+  /* ============================================================
      APP SHELL — status bar, header, content, bottom nav
      ============================================================ */
   const TABS = [
@@ -999,7 +1194,7 @@
     const goTab = (id) => { setTab(id); setPlayerId(null); };
 
     const titleMap = {
-      squad: t.squad_title, eval: t.eval_title, lineup: t.lineup_title, journey: t.nav_journey, board: t.nav_board,
+      squad: t.squad_title, eval: t.eval_title, lineup: t.lineup_title, journey: t.journey_title, board: t.nav_board,
     };
     const selPlayer = playerId ? PLAYERS.find(p => p.id === playerId) : null;
 
@@ -1009,6 +1204,7 @@
       : <SquadScreen t={t} tweaks={tweaks} openPlayer={setPlayerId} />;
     else if (tab === "eval") content = <EvaluateScreen t={t} tweaks={tweaks} />;
     else if (tab === "lineup") content = <LineupScreen t={t} tweaks={tweaks} />;
+    else if (tab === "journey") content = <JourneyScreen t={t} tweaks={tweaks} />;
     else content = <Placeholder label={titleMap[tab]} />;
 
     const showBack = tab === "squad" && selPlayer;
