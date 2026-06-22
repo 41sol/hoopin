@@ -112,6 +112,44 @@
 
   h1, h2, h3, p { text-wrap: pretty; }
   button { -webkit-tap-highlight-color: transparent; }
+  [dir="rtl"] { font-family: "Plus Jakarta Sans", "Segoe UI", Tahoma, sans-serif; }
+
+  /* Tweaks panel (theming / UX toggles) */
+  .twk-fab {
+    position: fixed; inset-inline-end: 16px; bottom: 16px; z-index: 2147483646;
+    width: 46px; height: 46px; border-radius: 50%; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,.28);
+  }
+  .twk-panel {
+    position: fixed; inset-inline-end: 16px; bottom: 16px; z-index: 2147483646;
+    width: 264px; max-height: calc(100vh - 32px); display: flex; flex-direction: column;
+    background: rgba(250,249,247,.94); color: #29261b;
+    -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
+    border: .5px solid rgba(255,255,255,.6); border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.18);
+    font: 11.5px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif; overflow: hidden;
+  }
+  .twk-hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 8px 10px 14px; }
+  .twk-hd b { font-size: 12px; font-weight: 600; }
+  .twk-x { border: 0; background: transparent; color: rgba(41,38,27,.55); width: 22px; height: 22px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .twk-x:hover { background: rgba(0,0,0,.06); color: #29261b; }
+  .twk-body { padding: 2px 14px 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+  .twk-sect { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: rgba(41,38,27,.45); padding: 10px 0 0; }
+  .twk-sect:first-child { padding-top: 0; }
+  .twk-row { display: flex; flex-direction: column; gap: 5px; }
+  .twk-row-h { flex-direction: row; align-items: center; justify-content: space-between; }
+  .twk-lbl { font-weight: 500; color: rgba(41,38,27,.72); }
+  .twk-seg { display: flex; padding: 2px; border-radius: 8px; background: rgba(0,0,0,.06); gap: 2px; }
+  .twk-seg button { flex: 1; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 500; min-height: 22px; border-radius: 6px; cursor: pointer; padding: 4px 6px; }
+  .twk-seg button[data-on="1"] { background: rgba(255,255,255,.92); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .twk-toggle { position: relative; width: 32px; height: 18px; border: 0; border-radius: 999px; background: rgba(0,0,0,.15); cursor: pointer; padding: 0; flex-shrink: 0; }
+  .twk-toggle[data-on="1"] { background: #34c759; }
+  .twk-toggle i { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+  .twk-toggle[data-on="1"] i { transform: translateX(14px); }
+  .twk-chips { display: flex; gap: 6px; }
+  .twk-chip { position: relative; flex: 1; height: 30px; border: 0; border-radius: 6px; cursor: pointer; box-shadow: 0 0 0 .5px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.06); }
+  .twk-chip[data-on="1"] { box-shadow: 0 0 0 2px rgba(0,0,0,.85), 0 2px 6px rgba(0,0,0,.15); }
 </style>
 </head>
 <body>
@@ -127,7 +165,28 @@
   /* ============================================================
      THEME — fixed defaults from the prototype's TWEAK_DEFAULTS
      ============================================================ */
-  const TWEAKS = { sport: "football", skillDisplay: "bars", navStyle: "labels", evalControl: "stars" };
+  const PALETTES = {
+    "#16A35A": { brand: "#16A35A", deep: "#0B6E45", tint: "rgba(22,163,90,.12)", glow: "rgba(22,163,90,.32)" },
+    "#FF6B2C": { brand: "#FF6B2C", deep: "#C2410C", tint: "rgba(255,107,44,.13)", glow: "rgba(255,107,44,.30)" },
+    "#2563EB": { brand: "#2563EB", deep: "#1E40AF", tint: "rgba(37,99,235,.12)", glow: "rgba(37,99,235,.30)" },
+    "#7C3AED": { brand: "#7C3AED", deep: "#5B21B6", tint: "rgba(124,58,237,.12)", glow: "rgba(124,58,237,.30)" },
+  };
+
+  const LIGHT = {
+    "--app-bg": "#F1F5F2", "--card": "#FFFFFF", "--ink": "#0E1512", "--muted": "#5E6E66",
+    "--line": "#E8EDEA", "--line-strong": "#CCD6D1", "--track": "#F2F5F3",
+    "--shadow": "0 1px 2px rgba(13,30,22,.05), 0 1px 1px rgba(13,30,22,.04)",
+  };
+  const DARK = {
+    "--app-bg": "#0B1310", "--card": "#152019", "--ink": "#EAF2EE", "--muted": "#90A29A",
+    "--line": "#243029", "--line-strong": "#374438", "--track": "#1B2620",
+    "--shadow": "0 1px 2px rgba(0,0,0,.3)",
+  };
+
+  const TWEAK_DEFAULTS = {
+    themeColor: "#16A35A", dark: false, lang: "en",
+    sport: "football", evalControl: "stars", skillDisplay: "bars", navStyle: "labels",
+  };
 
   /* ============================================================
      DATA — squad, skills, attendance, UI strings (EN)
@@ -180,11 +239,11 @@
 
   // Radar metrics (grouped) + month labels for trend
   const METRICS = [
-    { key: "technical", label: "Technical" },
-    { key: "tactical",  label: "Tactical" },
-    { key: "physical",  label: "Physical" },
-    { key: "mental",    label: "Mental" },
-    { key: "teamwork",  label: "Teamwork" },
+    { key: "technical", label: "Technical", ar: "تقني",   fr: "Technique" },
+    { key: "tactical",  label: "Tactical",  ar: "تكتيكي", fr: "Tactique" },
+    { key: "physical",  label: "Physical",  ar: "بدني",   fr: "Physique" },
+    { key: "mental",    label: "Mental",    ar: "ذهني",   fr: "Mental" },
+    { key: "teamwork",  label: "Teamwork",  ar: "جماعي",  fr: "Collectif" },
   ];
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
 
@@ -259,25 +318,53 @@
     ],
   };
 
-  const S = {
-    nav_squad: "Squad", nav_eval: "Evaluate", nav_lineup: "Lineup", nav_journey: "Journey", nav_board: "Board",
-    squad_title: "Squad", eval_title: "Session Evaluation",
-    skills: "Skill ratings", recent: "Recent attendance",
-    edit: "Edit", save: "Save", saved: "Saved", coach_view: "Coach view",
-    avail_in: "Available", avail_maybe: "Maybe", avail_out: "Unavailable",
-    age: "Age", height: "Height", weight: "Weight", foot: "Foot", overall: "Overall",
-    // Evaluation (Screen 2)
-    submit: "Submit evaluation", select_player: "Select player", rate: "Rate", years: "yrs",
-    technical: "Technical Skill", tactical: "Tactical Awareness", workrate: "Work Rate", discipline: "Discipline & Attitude",
-    notes: "Coach notes", notes_ph: "Add a quick note…",
-    // Lineup (Screen 3)
-    lineup_title: "Match Lineup", roster: "Available", export: "Save lineup", drag_hint: "Drag players onto the pitch",
-    // Journey (Screen 4)
-    journey_title: "My Journey", overview: "Overview", improving: "Improving",
-    attendance: "Attendance", last_month: "Last month", last_6m: "Last 6 months",
-    // Board (Screen 5)
-    board_title: "Announcements", attending: "Attending", absent: "Absent",
-    going: "I'm in", cant: "Can't make it", maybe: "Maybe",
+  // i18n: UI chrome only (content like names/announcements stays in source language)
+  const STRINGS = {
+    en: {
+      nav_squad: "Squad", nav_eval: "Evaluate", nav_lineup: "Lineup", nav_journey: "Journey", nav_board: "Board",
+      squad_title: "Squad", eval_title: "Session Evaluation", lineup_title: "Match Lineup",
+      journey_title: "My Journey", board_title: "Announcements",
+      profile: "Profile", skills: "Skill ratings", attendance: "Attendance", recent: "Recent attendance",
+      edit: "Edit", save: "Save", saved: "Saved", submit: "Submit evaluation", select_player: "Select player",
+      technical: "Technical Skill", tactical: "Tactical Awareness", workrate: "Work Rate", discipline: "Discipline & Attitude",
+      notes: "Coach notes", notes_ph: "Add a quick note…",
+      formation: "Formation", roster: "Available", export: "Save lineup", on_pitch: "On pitch", drag_hint: "Drag players onto the pitch",
+      overview: "Overview", timeframe: "Timeframe", last_month: "Last month", last_6m: "Last 6 months",
+      improving: "Improving", attending: "Attending", absent: "Absent", maybe: "Maybe", going: "I'm in", cant: "Can't make it",
+      coach_view: "Coach view", rate: "Rate",
+      avail_in: "Available", avail_maybe: "Maybe", avail_out: "Unavailable", age: "Age", height: "Height", weight: "Weight",
+      pos: "Position", foot: "Foot", overall: "Overall", clear: "Clear", years: "yrs",
+    },
+    fr: {
+      nav_squad: "Effectif", nav_eval: "Évaluer", nav_lineup: "Compo", nav_journey: "Parcours", nav_board: "Annonces",
+      squad_title: "Effectif", eval_title: "Évaluation de séance", lineup_title: "Composition",
+      journey_title: "Mon parcours", board_title: "Annonces",
+      profile: "Profil", skills: "Notes de compétence", attendance: "Présence", recent: "Présence récente",
+      edit: "Modifier", save: "Enregistrer", saved: "Enregistré", submit: "Envoyer l'évaluation", select_player: "Choisir un joueur",
+      technical: "Technique", tactical: "Sens tactique", workrate: "Engagement", discipline: "Discipline & attitude",
+      notes: "Notes du coach", notes_ph: "Ajouter une note…",
+      formation: "Formation", roster: "Disponibles", export: "Enregistrer", on_pitch: "Sur le terrain", drag_hint: "Glissez les joueurs sur le terrain",
+      overview: "Aperçu", timeframe: "Période", last_month: "Dernier mois", last_6m: "6 derniers mois",
+      improving: "En progrès", attending: "Présents", absent: "Absents", maybe: "Peut-être", going: "Je viens", cant: "Indisponible",
+      coach_view: "Vue coach", rate: "Noter",
+      avail_in: "Disponible", avail_maybe: "Peut-être", avail_out: "Indisponible", age: "Âge", height: "Taille", weight: "Poids",
+      pos: "Poste", foot: "Pied", overall: "Global", clear: "Effacer", years: "ans",
+    },
+    ar: {
+      nav_squad: "الفريق", nav_eval: "تقييم", nav_lineup: "التشكيلة", nav_journey: "مسيرتي", nav_board: "الإعلانات",
+      squad_title: "الفريق", eval_title: "تقييم الحصة", lineup_title: "تشكيلة المباراة",
+      journey_title: "مسيرتي", board_title: "الإعلانات",
+      profile: "الملف", skills: "تقييم المهارات", attendance: "الحضور", recent: "الحضور الأخير",
+      edit: "تعديل", save: "حفظ", saved: "تم الحفظ", submit: "إرسال التقييم", select_player: "اختر لاعباً",
+      technical: "المهارة الفنية", tactical: "الوعي التكتيكي", workrate: "معدل الأداء", discipline: "الانضباط والسلوك",
+      notes: "ملاحظات المدرب", notes_ph: "أضف ملاحظة سريعة…",
+      formation: "التشكيل", roster: "المتاحون", export: "حفظ التشكيلة", on_pitch: "في الملعب", drag_hint: "اسحب اللاعبين إلى الملعب",
+      overview: "نظرة عامة", timeframe: "الفترة", last_month: "الشهر الماضي", last_6m: "آخر ٦ أشهر",
+      improving: "تحسّن", attending: "حاضر", absent: "غائب", maybe: "ربما", going: "سأحضر", cant: "لا أستطيع",
+      coach_view: "عرض المدرب", rate: "قيّم",
+      avail_in: "متاح", avail_maybe: "ربما", avail_out: "غير متاح", age: "العمر", height: "الطول", weight: "الوزن",
+      pos: "المركز", foot: "القدم", overall: "إجمالي", clear: "مسح", years: "سنة",
+    },
   };
 
   /* ============================================================
@@ -297,6 +384,7 @@
     calendar: "M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
     trophy: "M7 4h10v4a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 0-3 3M9 18h6M10 14v4M14 14v4",
     pin: "M9 4h6l-1 7 3 3v2H7v-2l3-3z M12 16v4",
+    sliders: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
     check: "M5 13l4 4L19 7",
     x: "M6 6l12 12M18 6L6 18",
     chevL: "M15 18l-6-6 6-6",
@@ -1103,7 +1191,7 @@
     const [tf, setTf] = useState("6m");
     const player = players.find(p => p.id === pid);
 
-    const metricsShort = METRICS.map(m => ({ ...m, short: m.label.slice(0, 4) }));
+    const metricsShort = METRICS.map(m => ({ ...m, short: (tweaks.lang === "ar" ? m.ar : tweaks.lang === "fr" ? m.fr : m.label).slice(0, tweaks.lang === "ar" ? 5 : 4) }));
     const trend6 = player.trend;
     const labels6 = MONTHS;
     // last month -> last 4 weeks, interpolate toward latest
@@ -1153,7 +1241,7 @@
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
             {METRICS.map(m => (
               <div key={m.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", background: "var(--track)", borderRadius: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>{m.label}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>{tweaks.lang === "ar" ? m.ar : tweaks.lang === "fr" ? m.fr : m.label}</span>
                 <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 14, color: ratingColor(player.radar[m.key]) }}>{player.radar[m.key]}</span>
               </div>
             ))}
@@ -1286,6 +1374,108 @@
   }
 
   /* ============================================================
+     TWEAKS PANEL — theming, language & UX-approach toggles
+     ============================================================ */
+  // localStorage-backed tweak state (standalone equivalent of the mockup's host protocol)
+  function useTweaks(defaults) {
+    const [values, setValues] = useState(() => {
+      try { return { ...defaults, ...JSON.parse(localStorage.getItem("hoopin.tweaks") || "{}") }; }
+      catch (e) { return defaults; }
+    });
+    const setTweak = (k, v) => setValues(prev => {
+      const next = { ...prev, [k]: v };
+      try { localStorage.setItem("hoopin.tweaks", JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+    return [values, setTweak];
+  }
+
+  function TweakSection({ label }) { return <div className="twk-sect">{label}</div>; }
+
+  function TweakToggle({ label, value, onChange }) {
+    return (
+      <div className="twk-row twk-row-h">
+        <span className="twk-lbl">{label}</span>
+        <button type="button" className="twk-toggle" data-on={value ? "1" : "0"}
+          role="switch" aria-checked={!!value} onClick={() => onChange(!value)}><i /></button>
+      </div>
+    );
+  }
+
+  function TweakRadio({ label, value, options, onChange }) {
+    const opts = options.map(o => (typeof o === "object" ? o : { value: o, label: o }));
+    return (
+      <div className="twk-row">
+        <span className="twk-lbl">{label}</span>
+        <div className="twk-seg" role="radiogroup">
+          {opts.map(o => (
+            <button key={o.value} type="button" role="radio" aria-checked={o.value === value}
+              data-on={o.value === value ? "1" : "0"} onClick={() => onChange(o.value)}>{o.label}</button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function TweakColor({ label, value, options, onChange }) {
+    return (
+      <div className="twk-row">
+        <span className="twk-lbl">{label}</span>
+        <div className="twk-chips" role="radiogroup">
+          {options.map(c => (
+            <button key={c} type="button" className="twk-chip" role="radio" aria-checked={c === value}
+              data-on={c === value ? "1" : "0"} style={{ background: c }} aria-label={c} onClick={() => onChange(c)} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function TweaksPanel({ tweaks, setTweak, brand }) {
+    const [open, setOpen] = useState(false);
+    if (!open) {
+      return (
+        <button className="twk-fab" style={{ background: brand }} aria-label="Open tweaks" onClick={() => setOpen(true)}>
+          <Icon name="sliders" size={22} color="#fff" />
+        </button>
+      );
+    }
+    return (
+      <div className="twk-panel">
+        <div className="twk-hd">
+          <b>Tweaks</b>
+          <button className="twk-x" aria-label="Close tweaks" onClick={() => setOpen(false)}>✕</button>
+        </div>
+        <div className="twk-body">
+          <TweakSection label="Brand" />
+          <TweakColor label="Theme color" value={tweaks.themeColor}
+            options={["#16A35A", "#FF6B2C", "#2563EB", "#7C3AED"]} onChange={v => setTweak("themeColor", v)} />
+          <TweakRadio label="Sport icon" value={tweaks.sport}
+            options={[{ value: "football", label: "Football" }, { value: "basketball", label: "Basketball" }]}
+            onChange={v => setTweak("sport", v)} />
+          <TweakToggle label="Dark mode" value={tweaks.dark} onChange={v => setTweak("dark", v)} />
+
+          <TweakSection label="Language" />
+          <TweakRadio label="Language" value={tweaks.lang}
+            options={[{ value: "en", label: "EN" }, { value: "fr", label: "FR" }, { value: "ar", label: "عربي" }]}
+            onChange={v => setTweak("lang", v)} />
+
+          <TweakSection label="UX approaches" />
+          <TweakRadio label="Evaluation input" value={tweaks.evalControl}
+            options={[{ value: "stars", label: "Stars" }, { value: "sliders", label: "Sliders" }]}
+            onChange={v => setTweak("evalControl", v)} />
+          <TweakRadio label="Skill display" value={tweaks.skillDisplay}
+            options={[{ value: "bars", label: "Bars" }, { value: "chips", label: "Chips" }]}
+            onChange={v => setTweak("skillDisplay", v)} />
+          <TweakRadio label="Bottom nav" value={tweaks.navStyle}
+            options={[{ value: "labels", label: "Labels" }, { value: "icons", label: "Icons only" }]}
+            onChange={v => setTweak("navStyle", v)} />
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
      APP SHELL — status bar, header, content, bottom nav
      ============================================================ */
   const TABS = [
@@ -1297,8 +1487,14 @@
   ];
 
   function App() {
-    const t = S;
-    const tweaks = TWEAKS;
+    const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+    const lang = tweaks.lang;
+    const rtl = lang === "ar";
+    const t = STRINGS[lang] || STRINGS.en;
+    const pal = PALETTES[tweaks.themeColor] || PALETTES["#16A35A"];
+    const neutral = tweaks.dark ? DARK : LIGHT;
+    const cssVars = { ...neutral, "--brand": pal.brand, "--brand-deep": pal.deep, "--brand-tint": pal.tint, "--brand-glow": pal.glow };
+
     const [tab, setTab] = useState(() => localStorage.getItem("hoopin.tab") || "squad");
     const [playerId, setPlayerId] = useState(null);
     const [scale, setScale] = useState(1);
@@ -1336,7 +1532,7 @@
 
     return (
       <div className="hp-stage">
-        <div className="hp-phone" style={{ transform: `scale(${scale})` }}>
+        <div className="hp-phone" dir={rtl ? "rtl" : "ltr"} style={{ ...cssVars, transform: `scale(${scale})` }}>
           {/* status bar */}
           <div className="hp-status">
             <span style={{ fontWeight: 700 }}>9:41</span>
@@ -1349,7 +1545,7 @@
           {/* header */}
           <header className="hp-header">
             {showBack ? (
-              <button onClick={() => setPlayerId(null)} className="hp-iconbtn"><Icon name="chevL" size={22} /></button>
+              <button onClick={() => setPlayerId(null)} className="hp-iconbtn"><Icon name={rtl ? "chevR" : "chevL"} size={22} /></button>
             ) : (
               <div style={{ width: 36, height: 36, borderRadius: 11, background: "var(--brand)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Icon name={tweaks.sport === "basketball" ? "basketball" : "football"} size={22} color="#fff" stroke={2} />
@@ -1386,6 +1582,8 @@
             })}
           </nav>
         </div>
+
+        <TweaksPanel tweaks={tweaks} setTweak={setTweak} brand={pal.brand} />
       </div>
     );
   }
