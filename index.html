@@ -1299,9 +1299,12 @@
   function App() {
     const t = S;
     const tweaks = TWEAKS;
-    const [tab, setTab] = useState("squad");
+    const [tab, setTab] = useState(() => localStorage.getItem("hoopin.tab") || "squad");
     const [playerId, setPlayerId] = useState(null);
     const [scale, setScale] = useState(1);
+
+    // Persist the last-opened tab so reopening the app returns to it
+    useEffect(() => { localStorage.setItem("hoopin.tab", tab); }, [tab]);
 
     useEffect(() => {
       const fit = () => {
