@@ -188,6 +188,24 @@
   ];
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
 
+  const ANNOUNCEMENTS = [
+    { id: "a1", author: "Coach Walid", role: "Head Coach", time: "2h ago", pinned: true,
+      tag: "Match call-up", tagColor: "accent",
+      title: "Match call-up — Sat 10:00 vs Sagesse",
+      body: "Squad for Saturday's league match is up. Meet at the academy by 9:00 sharp for warm-up. Bring both kits (home + away). Parents — kickoff is 10:00 at Bourj Hammoud pitch.",
+      rsvp: { in: 14, out: 2, maybe: 3 }, deadline: "RSVP by Fri 18:00", mine: null },
+    { id: "a2", author: "Academy Office", role: "Director", time: "Yesterday",
+      tag: "Schedule", tagColor: "blue",
+      title: "Tuesday session moved to 17:30",
+      body: "Due to pitch maintenance, this Tuesday's U16 training is pushed to 17:30–19:00. Same location.",
+      rsvp: { in: 11, out: 1, maybe: 5 }, deadline: "RSVP by Mon 20:00", mine: "in" },
+    { id: "a3", author: "Coach Walid", role: "Head Coach", time: "2 days ago",
+      tag: "Reminder", tagColor: "muted",
+      title: "Bring your medical forms",
+      body: "Reminder for new players: hand in signed medical clearance forms before next session. Ask the office if you need a copy.",
+      rsvp: null, deadline: null, mine: null },
+  ];
+
   const ATTENDANCE_LOG = [
     { date: "Jun 18", type: "Training", status: "present" },
     { date: "Jun 15", type: "Match · vs Sagesse",  status: "present" },
@@ -257,6 +275,9 @@
     // Journey (Screen 4)
     journey_title: "My Journey", overview: "Overview", improving: "Improving",
     attendance: "Attendance", last_month: "Last month", last_6m: "Last 6 months",
+    // Board (Screen 5)
+    board_title: "Announcements", attending: "Attending", absent: "Absent",
+    going: "I'm in", cant: "Can't make it", maybe: "Maybe",
   };
 
   /* ============================================================
@@ -275,6 +296,7 @@
     up: "M12 19V5M5 12l7-7 7 7",
     calendar: "M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
     trophy: "M7 4h10v4a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 0-3 3M9 18h6M10 14v4M14 14v4",
+    pin: "M9 4h6l-1 7 3 3v2H7v-2l3-3z M12 16v4",
     check: "M5 13l4 4L19 7",
     x: "M6 6l12 12M18 6L6 18",
     chevL: "M15 18l-6-6 6-6",
@@ -1152,6 +1174,118 @@
   }
 
   /* ============================================================
+     SCREEN 5 — Announcement & RSVP Board
+     ============================================================ */
+  function RsvpBtn({ active, color, icon, label, onClick }) {
+    return (
+      <button onClick={onClick} style={{
+        flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "10px 4px",
+        borderRadius: 14, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+        border: "1.5px solid " + (active ? color : "var(--line)"),
+        background: active ? color : "var(--card)", color: active ? "#fff" : "var(--muted)",
+        transition: "all .15s",
+      }}>
+        <Icon name={icon} size={18} stroke={2.6} />{label}
+      </button>
+    );
+  }
+
+  function Tally({ color, n, label }) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+        <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 19, color }}>{n}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>{label}</span>
+      </div>
+    );
+  }
+
+  function BoardScreen({ t, tweaks }) {
+    const [items, setItems] = useState(() => ANNOUNCEMENTS.map(a => ({ ...a, rsvp: a.rsvp ? { ...a.rsvp } : null })));
+
+    const setRsvp = (id, choice) => {
+      setItems(list => list.map(a => {
+        if (a.id !== id || !a.rsvp) return a;
+        const r = { ...a.rsvp };
+        const prev = a.mine;
+        const map = { in: "in", out: "out", maybe: "maybe" };
+        if (prev === choice) { r[map[prev]]--; return { ...a, rsvp: r, mine: null }; }
+        if (prev) r[map[prev]]--;
+        r[map[choice]]++;
+        return { ...a, rsvp: r, mine: choice };
+      }));
+    };
+
+    return (
+      <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+        {items.map(a => (
+          <Card key={a.id} pad={0} style={{ overflow: "hidden", borderColor: a.pinned ? "var(--brand)" : "var(--line)" }}>
+            {a.pinned && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--brand-tint)", color: "var(--brand)", padding: "6px 16px", fontSize: 11.5, fontWeight: 700 }}>
+                <Icon name="pin" size={13} stroke={2.2} /> Pinned
+              </div>
+            )}
+            <div style={{ padding: 16 }}>
+              {/* header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <Avatar name={a.author} size={40} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{a.author}</div>
+                  <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{a.role} · {a.time}</div>
+                </div>
+                <Pill color={a.tagColor}>{a.tag}</Pill>
+              </div>
+
+              <h3 style={{ margin: "0 0 6px", fontFamily: "Sora", fontSize: 16.5, fontWeight: 700, color: "var(--ink)", lineHeight: 1.25 }}>{a.title}</h3>
+              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: "var(--muted)" }}>{a.body}</p>
+
+              {a.rsvp && (
+                <div style={{ marginTop: 14 }}>
+                  {a.deadline && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, color: "var(--muted)", marginBottom: 10 }}>
+                      <Icon name="clock" size={13} /> {a.deadline}
+                    </div>
+                  )}
+                  {/* RSVP buttons */}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <RsvpBtn active={a.mine === "in"} color="#16A35A" icon="check" label={t.going} onClick={() => setRsvp(a.id, "in")} />
+                    <RsvpBtn active={a.mine === "maybe"} color="#CA8A04" icon="clock" label={t.maybe} onClick={() => setRsvp(a.id, "maybe")} />
+                    <RsvpBtn active={a.mine === "out"} color="#DC2626" icon="x" label={t.cant} onClick={() => setRsvp(a.id, "out")} />
+                  </div>
+
+                  {/* Summary (coach view) */}
+                  <div style={{ marginTop: 12, padding: "12px 14px", background: "var(--track)", borderRadius: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--muted)" }}>
+                        <Icon name="whistle" size={13} color="var(--brand)" /> {t.coach_view}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>{a.rsvp.in + a.rsvp.out + a.rsvp.maybe} responses</span>
+                    </div>
+                    {/* stacked bar */}
+                    {(() => {
+                      const total = a.rsvp.in + a.rsvp.out + a.rsvp.maybe || 1;
+                      const seg = (c, v) => <div style={{ width: (v / total * 100) + "%", background: c, height: "100%" }} />;
+                      return (
+                        <div style={{ display: "flex", height: 8, borderRadius: 6, overflow: "hidden", background: "var(--line)" }}>
+                          {seg("#16A35A", a.rsvp.in)}{seg("#CA8A04", a.rsvp.maybe)}{seg("#DC2626", a.rsvp.out)}
+                        </div>
+                      );
+                    })()}
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+                      <Tally color="#16A35A" n={a.rsvp.in} label={t.attending} />
+                      <Tally color="#CA8A04" n={a.rsvp.maybe} label={t.maybe} />
+                      <Tally color="#DC2626" n={a.rsvp.out} label={t.absent} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  /* ============================================================
      APP SHELL — status bar, header, content, bottom nav
      ============================================================ */
   const TABS = [
@@ -1161,18 +1295,6 @@
     { id: "journey", icon: "journey", key: "nav_journey" },
     { id: "board", icon: "board", key: "nav_board" },
   ];
-
-  function Placeholder({ label }) {
-    return (
-      <div style={{ padding: "80px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-        <div style={{ width: 64, height: 64, borderRadius: 18, background: "var(--brand-tint)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Icon name="whistle" size={30} color="var(--brand)" />
-        </div>
-        <div style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 18, color: "var(--ink)" }}>{label}</div>
-        <div style={{ fontSize: 14, color: "var(--muted)", maxWidth: 230 }}>This screen isn't built yet. Screen 1 (Squad) is the current focus.</div>
-      </div>
-    );
-  }
 
   function App() {
     const t = S;
@@ -1194,7 +1316,7 @@
     const goTab = (id) => { setTab(id); setPlayerId(null); };
 
     const titleMap = {
-      squad: t.squad_title, eval: t.eval_title, lineup: t.lineup_title, journey: t.journey_title, board: t.nav_board,
+      squad: t.squad_title, eval: t.eval_title, lineup: t.lineup_title, journey: t.journey_title, board: t.board_title,
     };
     const selPlayer = playerId ? PLAYERS.find(p => p.id === playerId) : null;
 
@@ -1205,7 +1327,7 @@
     else if (tab === "eval") content = <EvaluateScreen t={t} tweaks={tweaks} />;
     else if (tab === "lineup") content = <LineupScreen t={t} tweaks={tweaks} />;
     else if (tab === "journey") content = <JourneyScreen t={t} tweaks={tweaks} />;
-    else content = <Placeholder label={titleMap[tab]} />;
+    else content = <BoardScreen t={t} tweaks={tweaks} />;
 
     const showBack = tab === "squad" && selPlayer;
 
