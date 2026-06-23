@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Icon } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
+import ErrorBoundary from "./ErrorBoundary.jsx";
 
 const TABS = [
   { path: "/squad", icon: "squad", label: t.nav_squad, title: t.squad_title },
@@ -57,7 +58,9 @@ export default function AppShell() {
         </header>
 
         <main className="hp-content">
-          <div className="hp-wrap"><Outlet /></div>
+          <div className="hp-wrap">
+            <ErrorBoundary resetKey={pathname}><Outlet /></ErrorBoundary>
+          </div>
         </main>
       </div>
 
