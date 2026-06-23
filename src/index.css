@@ -122,6 +122,10 @@ a { color: inherit; text-decoration: none; }
   .bench-list { flex-wrap: wrap; overflow-x: visible; }
 }
 
+/* ---------- Journey dashboard layout ---------- */
+.journey-grid { display: grid; gap: 14px; grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 900px) { .journey-grid { grid-template-columns: 1fr 1fr; } }
+
 /* ---------- Animations ---------- */
 @keyframes hp-pop { 0% { transform: scale(.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
