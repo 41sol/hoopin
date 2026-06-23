@@ -15,6 +15,8 @@ const ICON = {
   download: "M12 3v12M7 10l5 5 5-5M5 21h14",
   up: "M12 19V5M5 12l7-7 7 7",
   trophy: "M7 4h10v4a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 0-3 3M9 18h6M10 14v4M14 14v4",
+  pin: "M9 4h6l-1 7 3 3v2H7v-2l3-3z M12 16v4",
+  trash: "M4 7h16M10 11v6M14 11v6M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3",
   chevD: "M6 9l6 6 6-6",
   check: "M5 13l4 4L19 7",
   x: "M6 6l12 12M18 6L6 18",

@@ -78,7 +78,14 @@ Database schema and seed data live in `supabase/migrations/`. Per-screen build n
 
 ## Status
 
-Early development, built screen by screen. Live on Supabase so far: **Screen 1 (Player Performance Profile)** — [`docs/screen-1-report.md`](docs/screen-1-report.md), **Screen 2 (Session/Match Evaluation)** — [`docs/screen-2-report.md`](docs/screen-2-report.md), **Screen 3 (Match Lineup Builder)** — [`docs/screen-3-report.md`](docs/screen-3-report.md), and **Screen 4 (My Journey)** — [`docs/screen-4-report.md`](docs/screen-4-report.md). Scope and acceptance criteria are tracked in the project's Functional Requirements Document (FRD v1.0).
+All 5 MVP screens are live on Supabase, responsive, and faithful to the prototype:
+**1. Player Performance Profile** — [`docs/screen-1-report.md`](docs/screen-1-report.md) ·
+**2. Session/Match Evaluation** — [`docs/screen-2-report.md`](docs/screen-2-report.md) ·
+**3. Match Lineup Builder** — [`docs/screen-3-report.md`](docs/screen-3-report.md) ·
+**4. My Journey** — [`docs/screen-4-report.md`](docs/screen-4-report.md) ·
+**5. Announcement & RSVP Board** — [`docs/screen-5-report.md`](docs/screen-5-report.md).
+
+Next up (Phase 2): real authentication + role-based RLS to replace the demo-open policies, the per-role views, and the FRD "nice to have" features. Scope and acceptance criteria are tracked in the project's Functional Requirements Document (FRD v1.0).
 
 ---
 
