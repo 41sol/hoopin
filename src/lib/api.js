@@ -71,3 +71,38 @@ export async function savePlayerSkills(playerId, entries) {
     .upsert(rows, { onConflict: "player_id,skill_id" });
   if (error) throw error;
 }
+
+/* ---------- Screen 2: Evaluations ---------- */
+
+export async function getEvalCriteria() {
+  const { data, error } = await supabase
+    .from("eval_criteria")
+    .select("id, key, label, icon, sort_order")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+// Creates an evaluation header then its per-criterion scores (0-100).
+// `scores` is [{ criterionId, value }].
+export async function createEvaluation({ playerId, teamId, coachName, evalDate, evalType, opponent, note, scores }) {
+  const { data: evaluation, error: e1 } = await supabase
+    .from("evaluations")
+    .insert({
+      player_id: playerId,
+      team_id: teamId,
+      coach_name: coachName,
+      eval_date: evalDate,
+      eval_type: evalType,
+      opponent: opponent || null,
+      note: note || null,
+    })
+    .select("id")
+    .single();
+  if (e1) throw e1;
+
+  const rows = scores.map(s => ({ evaluation_id: evaluation.id, criterion_id: s.criterionId, value: s.value }));
+  const { error: e2 } = await supabase.from("evaluation_scores").insert(rows);
+  if (e2) throw e2;
+  return evaluation.id;
+}

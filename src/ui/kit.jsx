@@ -10,6 +10,8 @@ const ICON = {
   journey: "M3 3v18h18M7 14l4-4 3 3 5-6",
   board: "M3 11l16-6v14L3 13v-2zM3 11v2M8 12.5V18a2 2 0 0 0 4 0",
   star: "M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z",
+  flame: "M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-2.5C9 11 10 9 12 3z",
+  calendar: "M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
   chevD: "M6 9l6 6 6-6",
   check: "M5 13l4 4L19 7",
   x: "M6 6l12 12M18 6L6 18",
@@ -155,3 +157,49 @@ export function SectionLabel({ children, action }) {
     </div>
   );
 }
+
+/* Interactive star rating (1..max). Click the current value again to clear. */
+export function StarRating({ value, onChange, max = 5, size = 34 }) {
+  return (
+    <div style={{ display: "flex", gap: 6 }}>
+      {Array.from({ length: max }).map((_, i) => {
+        const active = i < value;
+        return (
+          <button key={i} onClick={() => onChange(i + 1 === value ? 0 : i + 1)} aria-label={`${i + 1} stars`}
+            style={{ border: "none", background: "none", padding: 2, cursor: "pointer", lineHeight: 0 }}>
+            <Icon name="star" size={size} stroke={1.6} fill={active ? "current" : "none"}
+              color={active ? "var(--brand)" : "var(--line-strong)"} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Segmented control. options: [{ value, label }] */
+export function Segmented({ options, value, onChange, size = "md" }) {
+  return (
+    <div style={{ display: "inline-flex", background: "var(--track)", borderRadius: 12, padding: 3, gap: 2, border: "1px solid var(--line)" }}>
+      {options.map(o => {
+        const active = o.value === value;
+        return (
+          <button key={o.value} onClick={() => onChange(o.value)}
+            style={{
+              border: "none", cursor: "pointer", borderRadius: 9,
+              padding: size === "sm" ? "6px 12px" : "8px 16px",
+              fontSize: size === "sm" ? 12.5 : 13.5, fontWeight: 600, fontFamily: "inherit",
+              background: active ? "var(--card)" : "transparent",
+              color: active ? "var(--ink)" : "var(--muted)",
+              boxShadow: active ? "0 1px 3px rgba(0,0,0,.12)" : "none", transition: "all .15s",
+            }}>{o.label}</button>
+        );
+      })}
+    </div>
+  );
+}
+
+export const primaryBtn = {
+  border: "none", background: "var(--brand)", color: "#fff", borderRadius: 16, padding: "15px 24px",
+  fontFamily: "inherit", fontSize: 15.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 16px var(--brand-glow)",
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+};
