@@ -11,4 +11,10 @@ export const t = {
   age: "Age", height: "Height", weight: "Weight", pos: "Position", foot: "Foot", number: "Number",
   overall: "Overall", availability: "Availability",
   search_ph: "Search players…", sort: "Sort", filter: "Filter",
+  // Evaluation
+  select_player: "Select player", session: "Session", date: "Date",
+  type_training: "Training", type_match: "Match", opponent: "Opponent",
+  opponent_ph: "vs …", notes: "Coach notes", notes_ph: "Add a quick note…",
+  submit: "Submit evaluation", saved: "Saved", rate: "Rate", years: "yrs",
+  eval_synced: "synced to their performance profile.", rate_another: "Rate another player",
 };

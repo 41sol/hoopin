@@ -78,7 +78,7 @@ Database schema and seed data live in `supabase/migrations/`. Per-screen build n
 
 ## Status
 
-Early development, built screen by screen. **Screen 1 (Player Performance Profile)** is live on Supabase — see [`docs/screen-1-report.md`](docs/screen-1-report.md). Scope and acceptance criteria are tracked in the project's Functional Requirements Document (FRD v1.0).
+Early development, built screen by screen. Live on Supabase so far: **Screen 1 (Player Performance Profile)** — [`docs/screen-1-report.md`](docs/screen-1-report.md), and **Screen 2 (Session/Match Evaluation)** — [`docs/screen-2-report.md`](docs/screen-2-report.md). Scope and acceptance criteria are tracked in the project's Functional Requirements Document (FRD v1.0).
 
 ---
 
