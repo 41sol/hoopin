@@ -201,3 +201,65 @@ export async function getPlayerTrend(playerId) {
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
     .map(([key, b]) => ({ key, label: b.label, value: Math.round(b.sum / b.n) }));
 }
+
+/* ---------- Screen 5: Announcement & RSVP Board ---------- */
+
+const ANN_SELECT = `
+  id, author_name, author_role, tag, tag_color, title, body, pinned, has_rsvp, deadline, created_at,
+  announcement_rsvps ( player_id, status )
+`;
+
+export async function getAnnouncements(teamId) {
+  const { data, error } = await supabase
+    .from("announcements")
+    .select(ANN_SELECT)
+    .eq("team_id", teamId)
+    .order("pinned", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []).map(shapeAnnouncement);
+}
+
+// Builds the tally and exposes the raw rsvps so the caller can read "my" status.
+function shapeAnnouncement(row) {
+  const rsvps = row.announcement_rsvps || [];
+  const tally = { in: 0, maybe: 0, out: 0 };
+  for (const r of rsvps) if (tally[r.status] != null) tally[r.status] += 1;
+  const { announcement_rsvps, ...rest } = row;
+  return { ...rest, rsvps, tally };
+}
+
+export async function createAnnouncement(payload) {
+  const { data, error } = await supabase.from("announcements").insert(payload).select(ANN_SELECT).single();
+  if (error) throw error;
+  return shapeAnnouncement(data);
+}
+
+export async function updateAnnouncement(id, payload) {
+  const { data, error } = await supabase.from("announcements").update(payload).eq("id", id).select(ANN_SELECT).single();
+  if (error) throw error;
+  return shapeAnnouncement(data);
+}
+
+export async function deleteAnnouncement(id) {
+  const { error } = await supabase.from("announcements").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// Sets (or clears, when status is null) one player's RSVP, then returns the
+// refreshed announcement so the tally stays in sync.
+export async function setRsvp(announcementId, playerId, status) {
+  if (status == null) {
+    const { error } = await supabase.from("announcement_rsvps")
+      .delete().eq("announcement_id", announcementId).eq("player_id", playerId);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("announcement_rsvps")
+      .upsert({ announcement_id: announcementId, player_id: playerId, status, updated_at: new Date().toISOString() },
+              { onConflict: "announcement_id,player_id" });
+    if (error) throw error;
+  }
+  const { data, error } = await supabase.from("announcements").select(ANN_SELECT).eq("id", announcementId).single();
+  if (error) throw error;
+  return shapeAnnouncement(data);
+}

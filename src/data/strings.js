@@ -28,4 +28,13 @@ export const t = {
   last_3m: "Last 3 months", last_6m: "Last 6 months",
   keep_up: "Keep it up", pts_over: "pts over the",
   not_enough: "Not enough evaluations yet to chart a trend.",
+  // Board
+  going: "I'm in", maybe: "Maybe", cant: "Can't make it",
+  attending: "Attending", absent: "Absent", coach_view: "Coach view", pinned: "Pinned",
+  responses: "responses", new_announcement: "New announcement", edit: "Edit", delete: "Delete",
+  no_announcements: "No announcements yet.",
+  ann_title: "Title", ann_body: "Message", ann_tag: "Tag", ann_color: "Tag colour",
+  ann_deadline: "RSVP deadline (optional)", ann_pinned: "Pin to top", ann_rsvp: "Allow RSVP",
+  post: "Post", save_changes: "Save changes", cancel: "Cancel",
+  confirm_delete: "Delete this announcement?",
 };
