@@ -54,9 +54,31 @@ Advanced features for gamification, nationwide scouting, talent discovery, and c
 - **Offline Tolerance** — basic caching (e.g. offline evaluation storage) that syncs when connectivity is restored, for unstable 3G/4G regions.
 - **Security** — secure storage for video and profile data (e.g. AWS S3 with token access) and strict Role-Based Access Control (RBAC) to protect minors' data.
 
+## Tech stack
+
+- **Frontend:** Vite + React 18, `react-router-dom`. Design tokens and components ported from the original prototype (Sora + Plus Jakarta Sans, green/light theme). Fully responsive — sidebar nav on desktop/large tablet, bottom-tab nav on mobile.
+- **Backend:** Supabase (Postgres + RLS).
+
+## Development
+
+```bash
+npm install
+cp .env.example .env   # then fill in VITE_SUPABASE_ANON_KEY
+npm run dev            # http://localhost:5173
+```
+
+Environment variables (see `.env.example`):
+
+| Var | Description |
+|-----|-------------|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase publishable/anon key (safe for the browser) |
+
+Database schema and seed data live in `supabase/migrations/`. Per-screen build notes are in `docs/`.
+
 ## Status
 
-Early development. Scope and acceptance criteria are tracked in the project's Functional Requirements Document (FRD v1.0).
+Early development, built screen by screen. **Screen 1 (Player Performance Profile)** is live on Supabase — see [`docs/screen-1-report.md`](docs/screen-1-report.md). Scope and acceptance criteria are tracked in the project's Functional Requirements Document (FRD v1.0).
 
 ---
 

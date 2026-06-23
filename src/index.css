@@ -1,0 +1,115 @@
+/* ============================================================
+   Hoopin — global tokens + responsive app shell
+   Tokens ported verbatim from the prototype (fixed green / light
+   theme; the prototype's "Tweaks" panel is intentionally dropped).
+   ============================================================ */
+:root {
+  --app-bg: #F1F5F2;
+  --card: #FFFFFF;
+  --ink: #0E1512;
+  --muted: #5E6E66;
+  --line: #E8EDEA;
+  --line-strong: #CCD6D1;
+  --track: #F2F5F3;
+  --shadow: 0 1px 2px rgba(13,30,22,.05), 0 1px 1px rgba(13,30,22,.04);
+  --brand: #16A35A;
+  --brand-deep: #0B6E45;
+  --brand-tint: rgba(22,163,90,.12);
+  --brand-glow: rgba(22,163,90,.32);
+  --sidebar-w: 248px;
+  --header-h: 64px;
+  --nav-h: 64px;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  background: var(--app-bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3, p { text-wrap: pretty; }
+button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
+a { color: inherit; text-decoration: none; }
+
+/* ---------- Shell layout ---------- */
+.hp-app { display: flex; min-height: 100vh; }
+
+.hp-sidebar {
+  width: var(--sidebar-w); flex-shrink: 0;
+  background: var(--card); border-inline-end: 1px solid var(--line);
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 20px 14px;
+}
+.hp-brandrow { display: flex; align-items: center; gap: 11px; padding: 6px 8px 16px; }
+.hp-logo {
+  width: 40px; height: 40px; border-radius: 12px; background: var(--brand);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.hp-navitem {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 12px; border-radius: 13px; border: none; cursor: pointer;
+  background: transparent; color: var(--muted); font-size: 14.5px; font-weight: 700;
+  width: 100%; text-align: start; transition: background .14s, color .14s;
+}
+.hp-navitem:hover { background: var(--track); }
+.hp-navitem.active { background: var(--brand-tint); color: var(--brand); }
+
+.hp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.hp-header {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px;
+  min-height: var(--header-h); padding: 10px 20px;
+  background: color-mix(in srgb, var(--app-bg) 86%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.hp-iconbtn {
+  width: 38px; height: 38px; border-radius: 11px; border: none; background: transparent;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink);
+  flex-shrink: 0; padding: 0;
+}
+.hp-iconbtn:hover { background: var(--track); }
+
+.hp-content { flex: 1; }
+.hp-wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding: 22px 20px 48px; }
+
+/* ---------- Bottom nav (mobile) ---------- */
+.hp-bottomnav {
+  display: none;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  align-items: stretch; padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+  background: var(--card); border-top: 1px solid var(--line);
+}
+.hp-tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: none; border: none; cursor: pointer; padding: 6px 0;
+  font-size: 10.5px; font-weight: 700; position: relative; color: var(--muted);
+  transition: transform .12s;
+}
+.hp-tab:active { transform: scale(.92); }
+.hp-tab.active { color: var(--brand); }
+.hp-tab-dot {
+  position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
+  width: 18px; height: 3px; border-radius: 3px; background: var(--brand);
+}
+
+/* ---------- Breakpoint: sidebar on desktop / large tablets, bottom nav below ---------- */
+@media (max-width: 899px) {
+  .hp-sidebar { display: none; }
+  .hp-bottomnav { display: flex; }
+  .hp-content { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+  .hp-wrap { padding: 16px 14px 32px; }
+  .hp-header { padding: 8px 14px; }
+}
+
+/* ---------- Scrollbars ---------- */
+.hp-content { scrollbar-width: thin; }
+
+/* ---------- Responsive visibility helpers ---------- */
+.hp-mobile-only { display: none; }
+@media (max-width: 899px) { .hp-mobile-only { display: flex; } }
