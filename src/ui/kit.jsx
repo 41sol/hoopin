@@ -13,6 +13,8 @@ const ICON = {
   flame: "M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-2.5C9 11 10 9 12 3z",
   calendar: "M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
   download: "M12 3v12M7 10l5 5 5-5M5 21h14",
+  up: "M12 19V5M5 12l7-7 7 7",
+  trophy: "M7 4h10v4a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 0-3 3M9 18h6M10 14v4M14 14v4",
   chevD: "M6 9l6 6 6-6",
   check: "M5 13l4 4L19 7",
   x: "M6 6l12 12M18 6L6 18",

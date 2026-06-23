@@ -23,4 +23,9 @@ export const t = {
   new_lineup: "New lineup", load_lineup: "Load lineup", match_date: "Match date",
   all_on_pitch: "All players on the pitch.", available_lc: "available",
   unavailable_warning: "marked unavailable in the lineup",
+  // Journey
+  overview: "Skill overview", improving: "Improving", attendance: "Attendance",
+  last_3m: "Last 3 months", last_6m: "Last 6 months",
+  keep_up: "Keep it up", pts_over: "pts over the",
+  not_enough: "Not enough evaluations yet to chart a trend.",
 };

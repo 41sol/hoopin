@@ -171,3 +171,33 @@ export async function saveLineup({ id, teamId, formationId, name, matchDate, opp
   }
   return lineupId;
 }
+
+/* ---------- Screen 4: My Journey ---------- */
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Monthly "overall" trend for a player: each evaluation's overall = avg of its
+// criterion scores; months are then averaged and returned oldest → newest.
+export async function getPlayerTrend(playerId) {
+  const { data, error } = await supabase
+    .from("evaluations")
+    .select("eval_date, evaluation_scores(value)")
+    .eq("player_id", playerId)
+    .order("eval_date", { ascending: true });
+  if (error) throw error;
+
+  const buckets = new Map(); // 'YYYY-MM' -> { sum, n, label }
+  for (const ev of data || []) {
+    const scores = (ev.evaluation_scores || []).map(s => s.value);
+    if (!scores.length) continue;
+    const overall = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const d = new Date(ev.eval_date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const b = buckets.get(key) || { sum: 0, n: 0, label: MONTH_LABELS[d.getMonth()] };
+    b.sum += overall; b.n += 1;
+    buckets.set(key, b);
+  }
+  return [...buckets.entries()]
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    .map(([key, b]) => ({ key, label: b.label, value: Math.round(b.sum / b.n) }));
+}
