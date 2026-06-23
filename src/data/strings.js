@@ -1,0 +1,14 @@
+/* UI chrome strings. English only for now; structured as a dictionary so
+   the prototype's i18n (en/ar/fr + RTL) can be reintroduced later. */
+export const t = {
+  nav_squad: "Squad", nav_eval: "Evaluate", nav_lineup: "Lineup", nav_journey: "Journey", nav_board: "Board",
+  squad_title: "Squad", eval_title: "Session Evaluation", lineup_title: "Match Lineup",
+  journey_title: "My Journey", board_title: "Announcements",
+  skills: "Skill ratings", recent: "Recent attendance", details: "Player details",
+  edit: "Edit", save: "Save", saved: "Saved", cancel: "Cancel",
+  coach_view: "Coach view",
+  avail_in: "Available", avail_maybe: "Maybe", avail_out: "Unavailable",
+  age: "Age", height: "Height", weight: "Weight", pos: "Position", foot: "Foot", number: "Number",
+  overall: "Overall", availability: "Availability",
+  search_ph: "Search players…", sort: "Sort", filter: "Filter",
+};
