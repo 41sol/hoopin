@@ -106,3 +106,68 @@ export async function createEvaluation({ playerId, teamId, coachName, evalDate, 
   if (e2) throw e2;
   return evaluation.id;
 }
+
+/* ---------- Screen 3: Lineups ---------- */
+
+export async function getFormations() {
+  const { data, error } = await supabase
+    .from("formations")
+    .select("id, name, sort_order, slots")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+// Saved lineups for a team (newest first) for the load picker.
+export async function getLineups(teamId) {
+  const { data, error } = await supabase
+    .from("lineups")
+    .select("id, name, match_date, opponent, created_at, formation:formations(id, name)")
+    .eq("team_id", teamId)
+    .order("match_date", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+// Full lineup with its slot assignments as { slot_index: player_id }.
+export async function getLineupDetail(id) {
+  const { data, error } = await supabase
+    .from("lineups")
+    .select("id, name, match_date, opponent, formation:formations(id, name, slots), lineup_slots(slot_index, player_id)")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  const assign = {};
+  (data.lineup_slots || []).forEach(s => { if (s.player_id != null) assign[s.slot_index] = s.player_id; });
+  return { ...data, assign };
+}
+
+// Insert (or update existing) a lineup + its slots. `assign` is { slotIndex: playerId }.
+export async function saveLineup({ id, teamId, formationId, name, matchDate, opponent, assign }) {
+  let lineupId = id;
+  const header = {
+    team_id: teamId, formation_id: formationId, name: name || null,
+    match_date: matchDate || null, opponent: opponent || null,
+  };
+
+  if (lineupId) {
+    const { error } = await supabase.from("lineups").update(header).eq("id", lineupId);
+    if (error) throw error;
+    const { error: delErr } = await supabase.from("lineup_slots").delete().eq("lineup_id", lineupId);
+    if (delErr) throw delErr;
+  } else {
+    const { data, error } = await supabase.from("lineups").insert(header).select("id").single();
+    if (error) throw error;
+    lineupId = data.id;
+  }
+
+  const rows = Object.entries(assign)
+    .filter(([, playerId]) => playerId != null)
+    .map(([slotIndex, playerId]) => ({ lineup_id: lineupId, slot_index: Number(slotIndex), player_id: playerId }));
+  if (rows.length) {
+    const { error } = await supabase.from("lineup_slots").insert(rows);
+    if (error) throw error;
+  }
+  return lineupId;
+}

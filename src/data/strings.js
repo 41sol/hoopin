@@ -17,4 +17,10 @@ export const t = {
   opponent_ph: "vs …", notes: "Coach notes", notes_ph: "Add a quick note…",
   submit: "Submit evaluation", saved: "Saved", rate: "Rate", years: "yrs",
   eval_synced: "synced to their performance profile.", rate_another: "Rate another player",
+  // Lineup
+  formation: "Formation", bench: "Bench", on_pitch: "On pitch",
+  drag_hint: "Drag players onto the pitch", save_lineup: "Save lineup",
+  new_lineup: "New lineup", load_lineup: "Load lineup", match_date: "Match date",
+  all_on_pitch: "All players on the pitch.", available_lc: "available",
+  unavailable_warning: "marked unavailable in the lineup",
 };
