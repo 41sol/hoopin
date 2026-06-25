@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Avatar, Card, Icon, Pill, SectionLabel, StarRating, Segmented, primaryBtn } from "../ui/kit.jsx";
+import { Avatar, Card, Icon, Pill, SectionLabel, StarRating, FractionalStars, SkillBar, Segmented, ratingColor, primaryBtn } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
-import { getEvalCriteria, createEvaluation } from "../lib/api.js";
+import { getEvalCriteria, createEvaluation, createSkillEvaluation, setAutoApplyEval, savePlayerSkills } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
 const COACH_NAME = "Coach Walid"; // No auth yet — evaluations are recorded under a generic coach.
@@ -15,7 +15,7 @@ const inputStyle = {
 };
 
 export default function EvaluateScreen() {
-  const { players, team, loading, error } = useSquad();
+  const { players, team, loading, error, replacePlayer } = useSquad();
   const [criteria, setCriteria] = useState(null);
   const [critError, setCritError] = useState(null);
 
@@ -28,10 +28,10 @@ export default function EvaluateScreen() {
   if (critError) return <StateNote tone="error">Couldn't load criteria: {critError}</StateNote>;
   if (!players.length) return <StateNote>No players to evaluate yet.</StateNote>;
 
-  return <Evaluate players={players} team={team} criteria={criteria} />;
+  return <Evaluate players={players} team={team} criteria={criteria} replacePlayer={replacePlayer} />;
 }
 
-function Evaluate({ players, team, criteria }) {
+function Evaluate({ players, team, criteria, replacePlayer }) {
   const [pid, setPid] = useState(players[0].id);
   const [picking, setPicking] = useState(false);
   const [ratings, setRatings] = useState({});       // { criterionKey: stars 1..5 }
@@ -41,6 +41,12 @@ function Evaluate({ players, team, criteria }) {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [doneFor, setDoneFor] = useState(null);
+  const [autoApply, setAutoApplyState] = useState(!!team?.auto_apply_eval);
+  const onAutoApplyChange = async (v) => {
+    setAutoApplyState(v);
+    try { if (team?.id) await setAutoApplyEval(team.id, v); }
+    catch (e) { alert("Couldn't save the auto-apply setting: " + (e.message || e)); }
+  };
 
   const player = players.find(p => p.id === pid);
   const filled = useMemo(() => criteria.filter(c => ratings[c.key] > 0).length, [criteria, ratings]);
@@ -158,6 +164,12 @@ function Evaluate({ players, team, criteria }) {
         ))}
       </div>
 
+      {/* Advanced technical rating — feeds back into Squad ratings (US-3) */}
+      <div style={{ marginTop: 18 }}>
+        <AdvancedTechnical key={player.id} player={player} team={team}
+          autoApply={autoApply} onAutoApplyChange={onAutoApplyChange} onApplied={replacePlayer} />
+      </div>
+
       {/* Notes */}
       <div style={{ marginTop: 14 }}>
         <SectionLabel>{t.notes}</SectionLabel>
@@ -170,5 +182,174 @@ function Evaluate({ players, team, criteria }) {
         {submitting ? "…" : t.submit}
       </button>
     </div>
+  );
+}
+
+/* ---------- Advanced technical rating (US-3) ---------- */
+
+const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+const STAR_TO_100 = 20; // 5 stars == 100, matching the simplified card's mapping.
+
+// Per-skill suggestion vs the current squad value: nudge toward the eval score
+// (stars×20), only when it differs by ≥5, capped at ±10 (US-3 formula).
+function suggestionFor(value, stars) {
+  const raw = (stars || 0) * STAR_TO_100 - value;
+  const delta = Math.abs(raw) >= 5 ? clamp(Math.round(raw), -10, 10) : 0;
+  return { delta, newValue: clamp(value + delta, 0, 100) };
+}
+
+const actionBtn = {
+  display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid var(--brand)",
+  background: "var(--brand)", color: "#fff", padding: "8px 14px", borderRadius: 999,
+  fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+};
+const ghostBtn = {
+  border: "1px solid var(--line)", background: "var(--card)", color: "var(--muted)",
+  padding: "12px 16px", borderRadius: 16, fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+};
+
+function DeltaBadge({ delta }) {
+  if (!delta) return <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted)" }}>±0</span>;
+  const c = delta > 0 ? "#16A35A" : "#DC2626";
+  return <span style={{ fontSize: 11.5, fontWeight: 800, color: c, background: c + "1f", padding: "2px 8px", borderRadius: 999 }}>{delta > 0 ? "+" : ""}{delta}</span>;
+}
+
+function Modal({ children, onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "var(--card)", borderRadius: 20, border: "1px solid var(--line)", boxShadow: "var(--shadow)", padding: 18, width: "100%", maxWidth: 460, maxHeight: "85vh", overflowY: "auto" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onApplied }) {
+  const skills = player.skillList;
+  const [stars, setStars] = useState({});
+  const [modal, setModal] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [applied, setApplied] = useState(false);
+
+  const setStar = (k, v) => { setStars(s => ({ ...s, [k]: v })); setApplied(false); };
+
+  const ratedCount = skills.filter(s => (stars[s.key] || 0) > 0).length;
+  const allRated = skills.length > 0 && ratedCount === skills.length;
+  const accumulated = skills.length ? skills.reduce((a, s) => a + (stars[s.key] || 0), 0) / skills.length : 0;
+  const rows = skills.map(s => {
+    const st = stars[s.key] || 0;
+    const { delta, newValue } = suggestionFor(s.value, st);
+    return { skillId: s.skillId, key: s.key, label: s.label, value: s.value, stars: st, delta, newValue };
+  });
+  const hasChanges = rows.some(r => r.delta !== 0);
+
+  const persistAndApply = async (apply) => {
+    setBusy(true);
+    try {
+      if (apply) {
+        await savePlayerSkills(player.id, player.position, rows.map(r => ({ skillId: r.skillId, value: r.newValue })));
+      }
+      await createSkillEvaluation({
+        playerId: player.id, teamId: team?.id ?? null, position: player.position,
+        coachName: COACH_NAME, evalDate: today(), applied: apply,
+        scores: rows.map(r => ({ skillId: r.skillId, stars: r.stars, prevValue: r.value, suggestedDelta: r.delta, appliedValue: apply ? r.newValue : null })),
+      });
+      if (apply) {
+        const newSkills = { ...player.skills };
+        rows.forEach(r => { newSkills[r.key] = r.newValue; });
+        const newList = player.skillList.map(s => ({ ...s, value: newSkills[s.key] ?? s.value }));
+        onApplied({ ...player, skills: newSkills, skillList: newList });
+      }
+      setModal(false);
+      setStars({});
+      setApplied(apply);
+    } catch (e) {
+      alert("Couldn't save the evaluation: " + (e.message || e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <SectionLabel action={
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted)" }}>{t.auto_apply}</span>
+          <Segmented size="sm" value={autoApply} onChange={onAutoApplyChange}
+            options={[{ value: false, label: "Off" }, { value: true, label: "On" }]} />
+        </span>
+      }>{t.advanced_rating}{player.position ? " · " + player.position : ""}</SectionLabel>
+
+      {skills.length === 0 ? (
+        <StateNote>No sub-skills for this position yet.</StateNote>
+      ) : (
+        <>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {skills.map(s => (
+              <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 130px", minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{s.label}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 600 }}>now {s.value}</div>
+                </div>
+                <StarRating value={stars[s.key] || 0} onChange={v => setStar(s.key, v)} size={26} />
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)", flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 150px", minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".05em" }}>{t.accumulated}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
+                <FractionalStars value={accumulated} size={20} />
+                <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 16, color: "var(--ink)" }}>{accumulated.toFixed(1)}</span>
+              </div>
+            </div>
+            {applied ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--brand)" }}>
+                <Icon name="check" size={15} stroke={2.6} /> {t.applied_to_squad}
+              </span>
+            ) : !allRated ? (
+              <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{t.rate_all_hint}</span>
+            ) : !hasChanges ? (
+              <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{t.no_changes}</span>
+            ) : autoApply ? (
+              <button onClick={() => persistAndApply(true)} disabled={busy} style={actionBtn}>
+                <Icon name="check" size={14} stroke={2.6} /> {busy ? "…" : t.apply_to_squad}
+              </button>
+            ) : (
+              <button onClick={() => setModal(true)} disabled={busy} style={actionBtn}>
+                <Icon name="up" size={14} stroke={2.6} /> {t.suggest_improvements}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
+      {modal && (
+        <Modal onClose={() => !busy && setModal(false)}>
+          <SectionLabel>{t.suggested_changes}</SectionLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {rows.map(r => (
+              <div key={r.key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{r.label}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <DeltaBadge delta={r.delta} />
+                    <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 14, color: ratingColor(r.newValue) }}>{r.value} → {r.newValue}</span>
+                  </span>
+                </div>
+                <div style={{ height: 8, borderRadius: 8, background: "var(--track)", overflow: "hidden" }}>
+                  <div style={{ width: r.newValue + "%", height: "100%", borderRadius: 8, background: ratingColor(r.newValue), transition: "width .4s cubic-bezier(.2,.8,.2,1)" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+            <button onClick={() => persistAndApply(false)} disabled={busy} style={{ ...ghostBtn, flex: 1 }}>{t.decline}</button>
+            <button onClick={() => persistAndApply(true)} disabled={busy} style={{ ...primaryBtn, flex: 1, padding: "12px 16px" }}>{busy ? "…" : t.approve_apply}</button>
+          </div>
+        </Modal>
+      )}
+    </Card>
   );
 }

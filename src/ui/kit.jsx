@@ -182,6 +182,30 @@ export function StarRating({ value, onChange, max = 5, size = 34 }) {
   );
 }
 
+/* Read-only star display with fractional fill (e.g. 4.3 → 4 full + 30% of the
+   5th). Mirrors StarRating's look; used for accumulated/average ratings. */
+export function FractionalStars({ value, max = 5, size = 22, gap = 6 }) {
+  return (
+    <div style={{ display: "inline-flex", gap }}>
+      {Array.from({ length: max }).map((_, i) => {
+        const fill = Math.max(0, Math.min(1, value - i));
+        const gid = `fs-${i}-${Math.round(fill * 100)}`;
+        return (
+          <svg key={i} width={size} height={size} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+            <defs>
+              <linearGradient id={gid}>
+                <stop offset={fill} stopColor="var(--brand)" />
+                <stop offset={fill} stopColor="var(--line-strong)" stopOpacity="0.35" />
+              </linearGradient>
+            </defs>
+            <path d={ICON.star} fill={`url(#${gid})`} stroke="var(--brand)" strokeWidth="1.5" strokeLinejoin="round" />
+          </svg>
+        );
+      })}
+    </div>
+  );
+}
+
 /* Segmented control. options: [{ value, label }] */
 export function Segmented({ options, value, onChange, size = "md" }) {
   return (
