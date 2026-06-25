@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle }
 import { Avatar, Card, Icon, Pill, SectionLabel, StarRating, FractionalStars, SkillBar, Segmented, ratingColor, primaryBtn } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
-import { getEvalCriteria, createEvaluation, createSkillEvaluation, setAutoApplyEval, savePlayerSkills } from "../lib/api.js";
+import { getEvalCriteria, createEvaluation, createSkillEvaluation, setAutoApplyEval, savePlayerSkills, getSessionAttendance, setAttendance } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
 const COACH_NAME = "Coach Walid"; // No auth yet — evaluations are recorded under a generic coach.
@@ -150,6 +150,11 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
         </div>
       </Card>
 
+      {/* Attendance (US-4) — the selected player's status for this session */}
+      <div style={{ marginBottom: 16 }}>
+        <AttendanceCard player={player} teamId={team?.id} date={date} type={type} />
+      </div>
+
       {/* Progress — session criteria + the Technical Skills card (complete once all its sub-skills are rated) */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
         <div style={{ flex: 1, height: 6, borderRadius: 6, background: "var(--track)", overflow: "hidden" }}>
@@ -193,6 +198,88 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
         {submitting ? "…" : t.submit}
       </button>
     </div>
+  );
+}
+
+/* ---------- Attendance (US-4) ---------- */
+
+// Status options share the colours/icons the Profile screen's attendance log uses.
+const ATT_OPTS = [
+  { value: "present", label: t.att_present, color: "#16A35A", icon: "check" },
+  { value: "late",    label: t.att_late,    color: "#CA8A04", icon: "clock" },
+  { value: "absent",  label: t.att_absent,  color: "#DC2626", icon: "x" },
+];
+
+// The selected player's attendance for the current session (date + type). Tapping
+// a status saves it immediately (upsert); tapping the active one again clears it.
+// Reloads when the player or session changes so an existing status shows on revisit.
+function AttendanceCard({ player, teamId, date, type }) {
+  const [status, setStatus] = useState(null);   // 'present' | 'late' | 'absent' | null
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!teamId) { setLoading(false); return; }
+    let alive = true;
+    setLoading(true);
+    getSessionAttendance(teamId, player.id, date, type)
+      .then(s => { if (alive) setStatus(s); })
+      .catch(() => { if (alive) setStatus(null); }) // non-fatal: card starts unset
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [teamId, player.id, date, type]);
+
+  const mark = async (value) => {
+    const next = status === value ? null : value; // tap the active status again to clear
+    const prev = status;
+    setStatus(next);
+    setSaving(true);
+    try {
+      await setAttendance(teamId, player.id, date, type, next);
+    } catch (e) {
+      setStatus(prev); // revert on failure
+      alert("Couldn't save attendance: " + (e.message || e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <SectionLabel action={
+        loading ? <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--muted)" }}>{t.att_loading}</span>
+        : saving ? <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--muted)" }}>…</span>
+        : status ? <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--brand)" }}><Icon name="check" size={14} stroke={2.6} /> {t.saved}</span>
+        : null
+      }>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 24, height: 24, borderRadius: 8, background: "var(--brand-tint)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icon name="calendar" size={14} color="var(--brand)" />
+          </span>
+          {t.attendance}
+        </span>
+      </SectionLabel>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        {ATT_OPTS.map(o => {
+          const active = status === o.value;
+          return (
+            <button key={o.value} onClick={() => mark(o.value)} disabled={loading}
+              style={{
+                flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                padding: "12px 10px", borderRadius: 14, cursor: loading ? "default" : "pointer",
+                border: "1px solid " + (active ? o.color : "var(--line)"),
+                background: active ? o.color : "var(--card)",
+                color: active ? "#fff" : "var(--muted)",
+                fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", transition: "all .15s",
+              }}>
+              <Icon name={o.icon} size={17} color={active ? "#fff" : o.color} stroke={2.6} />
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 

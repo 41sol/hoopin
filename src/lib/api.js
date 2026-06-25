@@ -163,6 +163,50 @@ export async function createSkillEvaluation({ playerId, teamId, position, coachN
   return evaluation.id;
 }
 
+/* ---------- Screen 2: Attendance (US-4) ---------- */
+
+// One player's attendance status for a session (team + date + type), or null.
+export async function getSessionAttendance(teamId, playerId, sessionDate, sessionType) {
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("status")
+    .eq("team_id", teamId)
+    .eq("player_id", playerId)
+    .eq("session_date", sessionDate)
+    .eq("session_type", sessionType)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.status ?? null;
+}
+
+// Recent attendance rows for one player (newest first) for the profile log.
+export async function getPlayerAttendance(playerId, limit = 8) {
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("session_date, session_type, status")
+    .eq("player_id", playerId)
+    .order("session_date", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+// Sets (or clears, when status is null) one player's attendance for a session.
+export async function setAttendance(teamId, playerId, sessionDate, sessionType, status) {
+  if (status == null) {
+    const { error } = await supabase.from("attendance")
+      .delete()
+      .eq("team_id", teamId).eq("player_id", playerId)
+      .eq("session_date", sessionDate).eq("session_type", sessionType);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("attendance")
+      .upsert({ team_id: teamId, player_id: playerId, session_date: sessionDate, session_type: sessionType, status, updated_at: new Date().toISOString() },
+              { onConflict: "team_id,player_id,session_date,session_type" });
+    if (error) throw error;
+  }
+}
+
 /* ---------- Screen 3: Lineups ---------- */
 
 export async function getFormations() {
