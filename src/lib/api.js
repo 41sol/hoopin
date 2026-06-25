@@ -25,7 +25,7 @@ export async function getSkills() {
 
 const PLAYER_SELECT = `
   id, team_id, name, number, position, line, age, height_cm, weight_kg, foot,
-  availability, attendance_pct, rating_mode, simple_rating,
+  availability, attendance_pct,
   player_skills ( value, skill:skills ( id, key, label, sort_order, line ) )
 `;
 

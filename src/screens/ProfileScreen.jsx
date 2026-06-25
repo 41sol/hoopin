@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Avatar, Card, Icon, SectionLabel, SkillBar, Segmented, ratingColor, playerOverall, advancedOverall, AVAIL } from "../ui/kit.jsx";
+import { Avatar, Card, Icon, SectionLabel, SkillBar, ratingColor, overall, AVAIL } from "../ui/kit.jsx";
 import { ATTENDANCE_LOG, POSITIONS, POSITION_LINE, FEET } from "../data/static.js";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
@@ -73,29 +73,19 @@ function Profile({ player, onSaved, onBack }) {
   // ----- skills edit -----
   const [editSkills, setEditSkills] = useState(false);
   const [skillVals, setSkillVals] = useState(null);
-  const [ratingMode, setRatingMode] = useState(player.rating_mode || "advanced");
-  const [simpleVal, setSimpleVal] = useState(player.simple_rating ?? 5);
   const [savingSkills, setSavingSkills] = useState(false);
-  const startSkills = () => {
-    setSkillVals(Object.fromEntries(player.skillList.map(s => [s.key, s.value])));
-    setRatingMode(player.rating_mode || "advanced");
-    setSimpleVal(player.simple_rating ?? Math.max(1, Math.round(advancedOverall(player.skills) / 10)));
-    setEditSkills(true);
-  };
-  // Sub-skills (and the simplified overall) are rated on a 1–10 scale.
-  const bump = (k, d) => setSkillVals(s => ({ ...s, [k]: Math.max(1, Math.min(10, s[k] + d)) }));
-  const bumpSimple = (d) => setSimpleVal(v => Math.max(1, Math.min(10, v + d)));
+  const startSkills = () => { setSkillVals(Object.fromEntries(player.skillList.map(s => [s.key, s.value]))); setEditSkills(true); };
+  const bump = (k, d) => setSkillVals(s => ({ ...s, [k]: Math.max(0, Math.min(100, s[k] + d)) }));
   const saveSkills = async () => {
     setSavingSkills(true);
     try {
-      if (ratingMode === "advanced") {
-        const entries = player.skillList.map(s => ({ skillId: s.skillId, value: skillVals[s.key] }));
-        await savePlayerSkills(player.id, entries);
-      }
-      const updated = await updatePlayer(player.id, {
-        rating_mode: ratingMode,
-        simple_rating: ratingMode === "simplified" ? simpleVal : player.simple_rating,
-      });
+      const entries = player.skillList.map(s => ({ skillId: s.skillId, value: skillVals[s.key] }));
+      await savePlayerSkills(player.id, entries);
+      const updated = {
+        ...player,
+        skillList: player.skillList.map(s => ({ ...s, value: skillVals[s.key] })),
+        skills: { ...skillVals },
+      };
       onSaved(updated);
       setEditSkills(false);
     } catch (e) {
@@ -105,14 +95,8 @@ function Profile({ player, onSaved, onBack }) {
     }
   };
 
-  // Which rating mode the card should render: the in-progress choice while
-  // editing, otherwise the player's saved mode.
-  const showMode = editSkills ? ratingMode : (player.rating_mode || "advanced");
-
   const display = editDetails ? form : player;
-  const ov = !editSkills
-    ? playerOverall(player)
-    : ratingMode === "simplified" ? simpleVal * 10 : advancedOverall(skillVals);
+  const ov = overall(editSkills ? skillVals : player.skills);
 
   const statBox = (label, value, unit, key, editable) => (
     <div style={{ flex: 1, textAlign: "center", padding: "10px 4px" }}>
@@ -226,47 +210,20 @@ function Profile({ player, onSaved, onBack }) {
             </button>
           }>{t.skills}</SectionLabel>
 
-          {editSkills && (
-            <div style={{ marginBottom: 14 }}>
-              <Segmented size="sm" value={ratingMode} onChange={setRatingMode}
-                options={[{ value: "simplified", label: t.mode_simplified }, { value: "advanced", label: t.mode_advanced }]} />
-            </div>
-          )}
-
-          {showMode === "simplified" ? (
-            editSkills ? (
-              // Simplified · edit — a single 1–10 overall
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{t.overall_rating}</span>
-                <button onClick={() => bumpSimple(-1)} style={stepBtn}><Icon name="x" size={14} stroke={2.6} /></button>
-                <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 18, color: ratingColor(simpleVal * 10), minWidth: 30, textAlign: "center" }}>{simpleVal}</span>
-                <button onClick={() => bumpSimple(+1)} style={stepBtn}><Icon name="plus" size={14} stroke={2.6} /></button>
-              </div>
-            ) : (
-              // Simplified · read-only
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{t.overall_rating}</span>
-                <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 22, color: ratingColor((player.simple_rating ?? 0) * 10) }}>
-                  {player.simple_rating ?? "—"}<span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}> / 10</span>
-                </span>
-              </div>
-            )
-          ) : editSkills ? (
-            // Advanced · edit — each sub-skill on a 1–10 scale
+          {editSkills ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {player.skillList.map(s => (
                 <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{s.label}</span>
                   <button onClick={() => bump(s.key, -1)} style={stepBtn}><Icon name="x" size={14} stroke={2.6} /></button>
-                  <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 18, color: ratingColor(skillVals[s.key] * 10), minWidth: 30, textAlign: "center" }}>{skillVals[s.key]}</span>
+                  <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 18, color: ratingColor(skillVals[s.key]), minWidth: 30, textAlign: "center" }}>{skillVals[s.key]}</span>
                   <button onClick={() => bump(s.key, +1)} style={stepBtn}><Icon name="plus" size={14} stroke={2.6} /></button>
                 </div>
               ))}
             </div>
           ) : (
-            // Advanced · read-only
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {player.skillList.map(s => <SkillBar key={s.key} label={s.label} value={s.value} max={10} />)}
+              {player.skillList.map(s => <SkillBar key={s.key} label={s.label} value={s.value} />)}
             </div>
           )}
           {editSkills && <div style={{ marginTop: 12, fontSize: 11.5, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6 }}>

@@ -5,8 +5,6 @@ export const t = {
   squad_title: "Squad", eval_title: "Session Evaluation", lineup_title: "Match Lineup",
   journey_title: "My Journey", board_title: "Announcements",
   skills: "Skill ratings", recent: "Recent attendance", details: "Player details",
-  mode_simplified: "Simplified", mode_advanced: "Advanced", overall_rating: "Overall rating",
-  no_skill_breakdown: "Rated in Simplified mode — no skill breakdown.",
   edit: "Edit", save: "Save", saved: "Saved", cancel: "Cancel",
   coach_view: "Coach view",
   avail_in: "Available", avail_maybe: "Maybe", avail_out: "Unavailable",

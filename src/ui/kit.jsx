@@ -91,31 +91,14 @@ export function ratingColor(v) {
   return "#DC2626";
 }
 
-// Mean of a skill-value map.
-function mean(skills) {
-  const v = Object.values(skills || {});
+// Overall = average of the (0–100) sub-skill ratings.
+export function overall(skills) {
+  const v = Object.values(skills);
   if (!v.length) return 0;
-  return v.reduce((a, b) => a + b, 0) / v.length;
+  return Math.round(v.reduce((a, b) => a + b, 0) / v.length);
 }
 
-// Advanced overall: sub-skills are rated 1–10, so the 0–100 overall is the
-// average scaled ×10 (US-1: overall = round(average × 10)).
-export function advancedOverall(skills) {
-  return Math.round(mean(skills) * 10);
-}
-
-// Canonical 0–100 overall for a player, honoring their rating mode. Simplified
-// mode maps its single 1–10 score onto the same 0–100 scale (×10) so the squad
-// shows a comparable Overall regardless of mode.
-export function playerOverall(player) {
-  if (player.rating_mode === "simplified") return (player.simple_rating ?? 0) * 10;
-  return advancedOverall(player.skills);
-}
-
-// `max` lets the bar render a value on a non-100 scale (e.g. 1–10 sub-skills)
-// while keeping the fill and colour proportional. Defaults to the 0–100 scale.
-export function SkillBar({ label, value, max = 100 }) {
-  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+export function SkillBar({ label, value }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -123,7 +106,7 @@ export function SkillBar({ label, value, max = 100 }) {
         <span style={{ fontFamily: "Sora", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{value}</span>
       </div>
       <div style={{ height: 8, borderRadius: 8, background: "var(--track)", overflow: "hidden" }}>
-        <div style={{ width: pct + "%", height: "100%", borderRadius: 8, background: ratingColor(pct), transition: "width .5s cubic-bezier(.2,.8,.2,1)" }} />
+        <div style={{ width: value + "%", height: "100%", borderRadius: 8, background: ratingColor(value), transition: "width .5s cubic-bezier(.2,.8,.2,1)" }} />
       </div>
     </div>
   );

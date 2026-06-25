@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Avatar, Card, Icon, Pill, AvailDot, ratingColor, playerOverall } from "../ui/kit.jsx";
+import { Avatar, Card, Icon, Pill, AvailDot, ratingColor, overall } from "../ui/kit.jsx";
 import { LINES, LINE_LABEL } from "../data/static.js";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
@@ -40,7 +40,7 @@ export default function SquadScreen() {
     if (filter !== "all") list = list.filter(p => p.availability === filter);
     const sorter = sort === "name"
       ? (a, b) => a.name.localeCompare(b.name)
-      : (a, b) => playerOverall(b) - playerOverall(a);
+      : (a, b) => overall(b.skills) - overall(a.skills);
     return LINES.map(line => ({
       line,
       players: list.filter(p => p.line === line).sort(sorter),
@@ -81,7 +81,7 @@ export default function SquadScreen() {
           </h3>
           <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
             {players.map(p => {
-              const ov = playerOverall(p);
+              const ov = overall(p.skills);
               return (
                 <Card key={p.id} pad={10} onClick={() => navigate(`/squad/${p.id}`)}
                   style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
