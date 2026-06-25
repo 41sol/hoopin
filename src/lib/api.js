@@ -165,16 +165,18 @@ export async function createSkillEvaluation({ playerId, teamId, position, coachN
 
 /* ---------- Screen 2: Attendance (US-4) ---------- */
 
-// Recorded attendance for a session (team + date + type), as { playerId: status }.
-export async function getAttendance(teamId, sessionDate, sessionType) {
+// One player's attendance status for a session (team + date + type), or null.
+export async function getSessionAttendance(teamId, playerId, sessionDate, sessionType) {
   const { data, error } = await supabase
     .from("attendance")
-    .select("player_id, status")
+    .select("status")
     .eq("team_id", teamId)
+    .eq("player_id", playerId)
     .eq("session_date", sessionDate)
-    .eq("session_type", sessionType);
+    .eq("session_type", sessionType)
+    .maybeSingle();
   if (error) throw error;
-  return Object.fromEntries((data || []).map(r => [r.player_id, r.status]));
+  return data?.status ?? null;
 }
 
 // Recent attendance rows for one player (newest first) for the profile log.
