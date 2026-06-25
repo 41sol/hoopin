@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { Avatar, Card, Icon, Pill, SectionLabel, StarRating, FractionalStars, SkillBar, Segmented, ratingColor, primaryBtn } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
@@ -28,7 +28,11 @@ export default function EvaluateScreen() {
   if (critError) return <StateNote tone="error">Couldn't load criteria: {critError}</StateNote>;
   if (!players.length) return <StateNote>No players to evaluate yet.</StateNote>;
 
-  return <Evaluate players={players} team={team} criteria={criteria} replacePlayer={replacePlayer} />;
+  // "Technical Skill" is now captured by the Technical Skills card below (per-position
+  // sub-skills), so drop the single-star criterion to avoid double-rating it.
+  const visibleCriteria = criteria.filter(c => c.key !== "technical");
+
+  return <Evaluate players={players} team={team} criteria={visibleCriteria} replacePlayer={replacePlayer} />;
 }
 
 function Evaluate({ players, team, criteria, replacePlayer }) {
@@ -41,6 +45,8 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [doneFor, setDoneFor] = useState(null);
+  const [techComplete, setTechComplete] = useState(false); // all Technical Skills sub-skills rated
+  const techRef = useRef(null);                             // applies/records the technical ratings on submit
   const [autoApply, setAutoApplyState] = useState(!!team?.auto_apply_eval);
   const onAutoApplyChange = async (v) => {
     setAutoApplyState(v);
@@ -50,7 +56,9 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
 
   const player = players.find(p => p.id === pid);
   const filled = useMemo(() => criteria.filter(c => ratings[c.key] > 0).length, [criteria, ratings]);
-  const ready = filled === criteria.length && !submitting;
+  const total = criteria.length + 1;                // session criteria + the Technical Skills card
+  const done = filled + (techComplete ? 1 : 0);     // Technical Skills counts once all its sub-skills are rated
+  const ready = filled === criteria.length && techComplete && !submitting;
   const setR = (k, v) => setRatings(r => ({ ...r, [k]: v }));
 
   const reset = () => { setRatings({}); setNote(""); setOpponent(""); setType("training"); setDate(today()); setDoneFor(null); };
@@ -68,6 +76,8 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
         note,
         scores: criteria.map(c => ({ criterionId: c.id, value: (ratings[c.key] || 0) * 20 })),
       });
+      // Apply/record the Technical Skills card per its auto-apply / approve / decline state.
+      await techRef.current?.commit();
       setDoneFor(player.name);
     } catch (e) {
       alert("Couldn't submit evaluation: " + (e.message || e));
@@ -140,12 +150,19 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
         </div>
       </Card>
 
-      {/* Progress */}
+      {/* Progress — session criteria + the Technical Skills card (complete once all its sub-skills are rated) */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
         <div style={{ flex: 1, height: 6, borderRadius: 6, background: "var(--track)", overflow: "hidden" }}>
-          <div style={{ width: (filled / criteria.length * 100) + "%", height: "100%", background: "var(--brand)", borderRadius: 6, transition: "width .3s" }} />
+          <div style={{ width: (done / total * 100) + "%", height: "100%", background: "var(--brand)", borderRadius: 6, transition: "width .3s" }} />
         </div>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", fontFamily: "Sora" }}>{filled}/{criteria.length}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", fontFamily: "Sora" }}>{done}/{total}</span>
+      </div>
+
+      {/* Technical skills — per-position sub-skills that feed back into Squad ratings (US-3) */}
+      <div style={{ marginBottom: 16 }}>
+        <AdvancedTechnical key={player.id} ref={techRef} player={player} team={team}
+          autoApply={autoApply} onAutoApplyChange={onAutoApplyChange} onApplied={replacePlayer}
+          onRatedChange={setTechComplete} />
       </div>
 
       {/* Criteria */}
@@ -162,12 +179,6 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
             <StarRating value={ratings[c.key] || 0} onChange={v => setR(c.key, v)} />
           </Card>
         ))}
-      </div>
-
-      {/* Advanced technical rating — feeds back into Squad ratings (US-3) */}
-      <div style={{ marginTop: 18 }}>
-        <AdvancedTechnical key={player.id} player={player} team={team}
-          autoApply={autoApply} onAutoApplyChange={onAutoApplyChange} onApplied={replacePlayer} />
       </div>
 
       {/* Notes */}
@@ -207,6 +218,10 @@ const ghostBtn = {
   border: "1px solid var(--line)", background: "var(--card)", color: "var(--muted)",
   padding: "12px 16px", borderRadius: 16, fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
 };
+const linkBtn = {
+  border: "none", background: "none", color: "var(--muted)", padding: 0,
+  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline",
+};
 
 function DeltaBadge({ delta }) {
   if (!delta) return <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted)" }}>±0</span>;
@@ -224,17 +239,21 @@ function Modal({ children, onClose }) {
   );
 }
 
-function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onApplied }) {
+const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onApplied, onRatedChange }, ref) {
   const skills = player.skillList;
   const [stars, setStars] = useState({});
   const [modal, setModal] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [applied, setApplied] = useState(false);
+  const [approved, setApproved] = useState(false); // coach approved applying (auto-apply off flow)
 
-  const setStar = (k, v) => { setStars(s => ({ ...s, [k]: v })); setApplied(false); };
+  const setStar = (k, v) => setStars(s => ({ ...s, [k]: v }));
 
   const ratedCount = skills.filter(s => (stars[s.key] || 0) > 0).length;
   const allRated = skills.length > 0 && ratedCount === skills.length;
+
+  // Report completion up so the progress indicator can count this card as one item.
+  // A position with no sub-skills has nothing to rate, so treat it as already complete.
+  const complete = skills.length === 0 || allRated;
+  useEffect(() => { onRatedChange?.(complete); }, [complete, onRatedChange]);
   const accumulated = skills.length ? skills.reduce((a, s) => a + (stars[s.key] || 0), 0) / skills.length : 0;
   const rows = skills.map(s => {
     const st = stars[s.key] || 0;
@@ -243,9 +262,17 @@ function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onAppli
   });
   const hasChanges = rows.some(r => r.delta !== 0);
 
-  const persistAndApply = async (apply) => {
-    setBusy(true);
-    try {
+  // Auto-apply pushes the ratings to the squad unconditionally; otherwise the coach must
+  // approve. Approving (auto-apply off) locks the stars read-only until the form is submitted.
+  const willApply = autoApply || approved;
+  const locked = approved && !autoApply;
+
+  // Run by the parent form on submit: record the skill evaluation and, when applying,
+  // write the new squad values. No-op when nothing meaningful was suggested.
+  useImperativeHandle(ref, () => ({
+    commit: async () => {
+      if (!hasChanges) return;
+      const apply = willApply;
       if (apply) {
         await savePlayerSkills(player.id, player.position, rows.map(r => ({ skillId: r.skillId, value: r.newValue })));
       }
@@ -260,15 +287,8 @@ function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onAppli
         const newList = player.skillList.map(s => ({ ...s, value: newSkills[s.key] ?? s.value }));
         onApplied({ ...player, skills: newSkills, skillList: newList });
       }
-      setModal(false);
-      setStars({});
-      setApplied(apply);
-    } catch (e) {
-      alert("Couldn't save the evaluation: " + (e.message || e));
-    } finally {
-      setBusy(false);
-    }
-  };
+    },
+  }));
 
   return (
     <Card>
@@ -278,7 +298,14 @@ function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onAppli
           <Segmented size="sm" value={autoApply} onChange={onAutoApplyChange}
             options={[{ value: false, label: "Off" }, { value: true, label: "On" }]} />
         </span>
-      }>{t.advanced_rating}{player.position ? " · " + player.position : ""}</SectionLabel>
+      }>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 24, height: 24, borderRadius: 8, background: "var(--brand-tint)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icon name="football" size={14} color="var(--brand)" />
+          </span>
+          {t.advanced_rating}{player.position ? " · " + player.position : ""}
+        </span>
+      </SectionLabel>
 
       {skills.length === 0 ? (
         <StateNote>No sub-skills for this position yet.</StateNote>
@@ -291,7 +318,7 @@ function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onAppli
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{s.label}</div>
                   <div style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 600 }}>now {s.value}</div>
                 </div>
-                <StarRating value={stars[s.key] || 0} onChange={v => setStar(s.key, v)} size={26} />
+                <StarRating value={stars[s.key] || 0} onChange={v => setStar(s.key, v)} size={26} readOnly={locked} />
               </div>
             ))}
           </div>
@@ -304,20 +331,23 @@ function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onAppli
                 <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 16, color: "var(--ink)" }}>{accumulated.toFixed(1)}</span>
               </div>
             </div>
-            {applied ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--brand)" }}>
-                <Icon name="check" size={15} stroke={2.6} /> {t.applied_to_squad}
-              </span>
-            ) : !allRated ? (
+            {!allRated ? (
               <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{t.rate_all_hint}</span>
             ) : !hasChanges ? (
               <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{t.no_changes}</span>
             ) : autoApply ? (
-              <button onClick={() => persistAndApply(true)} disabled={busy} style={actionBtn}>
-                <Icon name="check" size={14} stroke={2.6} /> {busy ? "…" : t.apply_to_squad}
-              </button>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>
+                <Icon name="check" size={14} color="var(--brand)" stroke={2.6} /> {t.applies_on_submit}
+              </span>
+            ) : approved ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--brand)" }}>
+                  <Icon name="check" size={15} stroke={2.6} /> {t.approved_on_submit}
+                </span>
+                <button onClick={() => setApproved(false)} style={linkBtn}>{t.edit_ratings}</button>
+              </span>
             ) : (
-              <button onClick={() => setModal(true)} disabled={busy} style={actionBtn}>
+              <button onClick={() => setModal(true)} style={actionBtn}>
                 <Icon name="up" size={14} stroke={2.6} /> {t.suggest_improvements}
               </button>
             )}
@@ -326,7 +356,7 @@ function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onAppli
       )}
 
       {modal && (
-        <Modal onClose={() => !busy && setModal(false)}>
+        <Modal onClose={() => setModal(false)}>
           <SectionLabel>{t.suggested_changes}</SectionLabel>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {rows.map(r => (
@@ -345,11 +375,11 @@ function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onAppli
             ))}
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-            <button onClick={() => persistAndApply(false)} disabled={busy} style={{ ...ghostBtn, flex: 1 }}>{t.decline}</button>
-            <button onClick={() => persistAndApply(true)} disabled={busy} style={{ ...primaryBtn, flex: 1, padding: "12px 16px" }}>{busy ? "…" : t.approve_apply}</button>
+            <button onClick={() => { setApproved(false); setModal(false); }} style={{ ...ghostBtn, flex: 1 }}>{t.decline}</button>
+            <button onClick={() => { setApproved(true); setModal(false); }} style={{ ...primaryBtn, flex: 1, padding: "12px 16px" }}>{t.approve_apply}</button>
           </div>
         </Modal>
       )}
     </Card>
   );
-}
+});

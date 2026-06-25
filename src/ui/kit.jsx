@@ -164,15 +164,16 @@ export function SectionLabel({ children, action }) {
   );
 }
 
-/* Interactive star rating (1..max). Click the current value again to clear. */
-export function StarRating({ value, onChange, max = 5, size = 34 }) {
+/* Interactive star rating (1..max). Click the current value again to clear.
+   Pass readOnly to lock it as a non-interactive display of the current value. */
+export function StarRating({ value, onChange, max = 5, size = 34, readOnly = false }) {
   return (
     <div style={{ display: "flex", gap: 6 }}>
       {Array.from({ length: max }).map((_, i) => {
         const active = i < value;
         return (
-          <button key={i} onClick={() => onChange(i + 1 === value ? 0 : i + 1)} aria-label={`${i + 1} stars`}
-            style={{ border: "none", background: "none", padding: 2, cursor: "pointer", lineHeight: 0 }}>
+          <button key={i} disabled={readOnly} onClick={readOnly ? undefined : () => onChange(i + 1 === value ? 0 : i + 1)} aria-label={`${i + 1} stars`}
+            style={{ border: "none", background: "none", padding: 2, cursor: readOnly ? "default" : "pointer", lineHeight: 0 }}>
             <Icon name="star" size={size} stroke={1.6} fill={active ? "current" : "none"}
               color={active ? "var(--brand)" : "var(--line-strong)"} />
           </button>
