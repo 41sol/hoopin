@@ -163,6 +163,53 @@ export async function createSkillEvaluation({ playerId, teamId, position, coachN
   return evaluation.id;
 }
 
+/* ---------- US-5: Overall rating history ---------- */
+
+// Read-only, newest-first log of a player's past ratings. Each row is one
+// evaluation session: the session criteria (tactical / work rate / discipline)
+// plus the accumulated Technical Skills rating. Technical comes from the matching
+// advanced technical evaluation (US-3) when one exists for that date, otherwise it
+// falls back to the legacy `technical` criterion stored on older/seeded session
+// evaluations. All values are 0–100 so they share the squad rating scale.
+export async function getRatingHistory(playerId) {
+  const { data: evals, error } = await supabase
+    .from("evaluations")
+    .select("eval_date, eval_type, evaluation_scores ( value, criterion:eval_criteria ( key ) )")
+    .eq("player_id", playerId)
+    .order("eval_date", { ascending: false });
+  if (error) throw error;
+
+  const { data: tech, error: e2 } = await supabase
+    .from("skill_evaluations")
+    .select("eval_date, skill_evaluation_scores ( stars )")
+    .eq("player_id", playerId);
+  if (e2) throw e2;
+
+  // Accumulated technical (0–100) per session date: average stars × 20.
+  const techByDate = new Map();
+  for (const se of tech || []) {
+    const stars = (se.skill_evaluation_scores || []).map(s => s.stars);
+    if (!stars.length) continue;
+    techByDate.set(se.eval_date, Math.round((stars.reduce((a, b) => a + b, 0) / stars.length) * 20));
+  }
+
+  return (evals || []).map(ev => {
+    const by = {};
+    for (const s of ev.evaluation_scores || []) {
+      const k = s.criterion?.key;
+      if (k) by[k] = s.value;
+    }
+    return {
+      date: ev.eval_date,
+      type: ev.eval_type,
+      technical: techByDate.has(ev.eval_date) ? techByDate.get(ev.eval_date) : (by.technical ?? null),
+      tactical: by.tactical ?? null,
+      workrate: by.workrate ?? null,
+      discipline: by.discipline ?? null,
+    };
+  });
+}
+
 /* ---------- Screen 2: Attendance (US-4) ---------- */
 
 // One player's attendance status for a session (team + date + type), or null.

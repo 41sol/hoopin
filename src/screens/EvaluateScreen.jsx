@@ -1,12 +1,42 @@
-import { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { Avatar, Card, Icon, Pill, SectionLabel, StarRating, FractionalStars, SkillBar, Segmented, ratingColor, primaryBtn } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
-import { getEvalCriteria, createEvaluation, createSkillEvaluation, setAutoApplyEval, savePlayerSkills, getSessionAttendance, setAttendance } from "../lib/api.js";
+import { getEvalCriteria, createEvaluation, createSkillEvaluation, setAutoApplyEval, savePlayerSkills, getSessionAttendance, setAttendance, getRatingHistory } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
 const COACH_NAME = "Coach Walid"; // No auth yet — evaluations are recorded under a generic coach.
 const today = () => new Date().toISOString().slice(0, 10);
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// "2026-06-25" -> "Jun 25" (parsed by parts to avoid a UTC/local off-by-one).
+function fmtHistDate(d) {
+  const [, m, day] = d.split("-");
+  return `${MONTHS[Number(m) - 1]} ${Number(day)}`;
+}
+
+// The four rated categories, in display order, with their icon + short header.
+const HIST_COLS = [
+  { key: "technical",  label: t.col_technical,  short: "Tech", icon: "football" },
+  { key: "tactical",   label: t.col_tactical,   short: "Tac",  icon: "lineup" },
+  { key: "workrate",   label: t.col_workrate,   short: "Work", icon: "flame" },
+  { key: "discipline", label: t.col_discipline, short: "Disc", icon: "whistle" },
+];
+
+// Small "avg N" chip — the running average of a category's past ratings. Shown on
+// each rating card so the coach sees the player's history while rating (US-5).
+function AvgBadge({ value }) {
+  if (value == null) return null;
+  return (
+    <span title="Average of past ratings" style={{
+      display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 700,
+      color: "var(--muted)", background: "var(--track)", border: "1px solid var(--line)",
+      padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap",
+    }}>
+      {t.hist_avg} <span style={{ fontFamily: "Sora", fontWeight: 800, color: ratingColor(value) }}>{value}</span>
+    </span>
+  );
+}
 
 const inputStyle = {
   width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 12,
@@ -47,6 +77,24 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
   const [doneFor, setDoneFor] = useState(null);
   const [techComplete, setTechComplete] = useState(false); // all Technical Skills sub-skills rated
   const techRef = useRef(null);                             // applies/records the technical ratings on submit
+
+  // Read-only rating history for the selected player (US-5).
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const loadHistory = useCallback(() => {
+    getRatingHistory(pid).then(setHistory).catch(() => setHistory([])); // non-fatal: empty log
+  }, [pid]);
+  useEffect(() => { setHistory([]); loadHistory(); }, [loadHistory]);
+
+  // Running average per category over the whole history — drives the per-card badges.
+  const histAvg = useMemo(() => {
+    const out = {};
+    for (const c of HIST_COLS) {
+      const vals = history.map(r => r[c.key]).filter(v => v != null);
+      out[c.key] = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+    }
+    return out;
+  }, [history]);
   const [autoApply, setAutoApplyState] = useState(!!team?.auto_apply_eval);
   const onAutoApplyChange = async (v) => {
     setAutoApplyState(v);
@@ -78,6 +126,7 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
       });
       // Apply/record the Technical Skills card per its auto-apply / approve / decline state.
       await techRef.current?.commit();
+      loadHistory(); // include the just-recorded session in the history log
       setDoneFor(player.name);
     } catch (e) {
       alert("Couldn't submit evaluation: " + (e.message || e));
@@ -129,6 +178,23 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
         </Card>
       )}
 
+      {/* View rating history (US-5) — read-only log of the player's past ratings */}
+      <button onClick={() => setShowHistory(true)} style={{
+        display: "flex", alignItems: "center", gap: 10, width: "100%", boxSizing: "border-box",
+        border: "1px solid var(--line)", background: "var(--card)", color: "var(--ink)",
+        borderRadius: 14, padding: "12px 16px", fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+        cursor: "pointer", marginBottom: 16, boxShadow: "var(--shadow)",
+      }}>
+        <span style={{ width: 28, height: 28, borderRadius: 9, background: "var(--brand-tint)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon name="clock" size={16} color="var(--brand)" />
+        </span>
+        <span style={{ flex: 1, textAlign: "start" }}>{t.view_history}</span>
+        {history.length > 0 && <Pill color="muted">{history.length}</Pill>}
+        <Icon name="chevR" size={18} color="var(--muted)" />
+      </button>
+
+      {showHistory && <HistoryModal player={player} rows={history} avg={histAvg} onClose={() => setShowHistory(false)} />}
+
       {/* Session context */}
       <Card style={{ marginBottom: 16 }}>
         <SectionLabel>{t.session}</SectionLabel>
@@ -165,9 +231,9 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
 
       {/* Technical skills — per-position sub-skills that feed back into Squad ratings (US-3) */}
       <div style={{ marginBottom: 16 }}>
-        <AdvancedTechnical key={player.id} ref={techRef} player={player} team={team}
+        <AdvancedTechnical key={player.id} ref={techRef} player={player} team={team} evalDate={date}
           autoApply={autoApply} onAutoApplyChange={onAutoApplyChange} onApplied={replacePlayer}
-          onRatedChange={setTechComplete} />
+          onRatedChange={setTechComplete} histAvg={histAvg.technical} />
       </div>
 
       {/* Criteria */}
@@ -179,6 +245,7 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
                 <Icon name={c.icon} size={18} color="var(--brand)" />
               </div>
               <span style={{ flex: 1, fontWeight: 700, fontSize: 14.5, color: "var(--ink)" }}>{c.label}</span>
+              <AvgBadge value={histAvg[c.key]} />
               {ratings[c.key] > 0 && <span style={{ fontFamily: "Sora", fontWeight: 800, color: "var(--brand)", fontSize: 15 }}>{ratings[c.key]}.0</span>}
             </div>
             <StarRating value={ratings[c.key] || 0} onChange={v => setR(c.key, v)} />
@@ -326,7 +393,7 @@ function Modal({ children, onClose }) {
   );
 }
 
-const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, autoApply, onAutoApplyChange, onApplied, onRatedChange }, ref) {
+const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, evalDate, autoApply, onAutoApplyChange, onApplied, onRatedChange, histAvg }, ref) {
   const skills = player.skillList;
   const [stars, setStars] = useState({});
   const [modal, setModal] = useState(false);
@@ -365,7 +432,7 @@ const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, 
       }
       await createSkillEvaluation({
         playerId: player.id, teamId: team?.id ?? null, position: player.position,
-        coachName: COACH_NAME, evalDate: today(), applied: apply,
+        coachName: COACH_NAME, evalDate: evalDate || today(), applied: apply,
         scores: rows.map(r => ({ skillId: r.skillId, stars: r.stars, prevValue: r.value, suggestedDelta: r.delta, appliedValue: apply ? r.newValue : null })),
       });
       if (apply) {
@@ -391,6 +458,7 @@ const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, 
             <Icon name="football" size={14} color="var(--brand)" />
           </span>
           {t.advanced_rating}{player.position ? " · " + player.position : ""}
+          <AvgBadge value={histAvg} />
         </span>
       </SectionLabel>
 
@@ -470,3 +538,81 @@ const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, 
     </Card>
   );
 });
+
+/* ---------- Rating history (US-5) ---------- */
+
+const thStyle = (align) => ({
+  padding: "4px 6px 10px", textAlign: align, fontSize: 10.5, fontWeight: 700,
+  color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".04em",
+});
+
+// One rating value, coloured on the squad scale; em-dash when a category wasn't rated.
+function RatingCell({ value, strong }) {
+  if (value == null) return <span style={{ color: "var(--line-strong)", fontWeight: 700 }}>—</span>;
+  return <span style={{ fontFamily: "Sora", fontWeight: strong ? 800 : 700, fontSize: strong ? 14.5 : 13.5, color: ratingColor(value) }}>{value}</span>;
+}
+
+// Read-only modal: the player's past ratings as a date + 4-category table, newest
+// first, with a footer row of per-category averages. No edit/delete controls —
+// the log is purely a record (US-5 acceptance criteria).
+function HistoryModal({ player, rows, avg, onClose }) {
+  return (
+    <Modal onClose={onClose}>
+      <SectionLabel action={
+        <button onClick={onClose} aria-label={t.cancel} style={{ border: "none", background: "none", cursor: "pointer", lineHeight: 0, padding: 4 }}>
+          <Icon name="x" size={18} color="var(--muted)" />
+        </button>
+      }>{t.rating_history} · {player.name}</SectionLabel>
+
+      {rows.length === 0 ? (
+        <StateNote>{t.no_history}</StateNote>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={thStyle("start")}>{t.hist_date}</th>
+                {HIST_COLS.map(c => (
+                  <th key={c.key} style={thStyle("center")} title={c.label}>
+                    <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                      <Icon name={c.icon} size={15} color="var(--muted)" />
+                      <span>{c.short}</span>
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i} style={{ borderTop: "1px solid var(--line)" }}>
+                  <td style={{ padding: "10px 6px", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{fmtHistDate(r.date)}</div>
+                    <span style={{
+                      display: "inline-block", marginTop: 4, fontSize: 10, fontWeight: 700,
+                      color: r.type === "match" ? "#C2410C" : "var(--muted)",
+                      background: r.type === "match" ? "rgba(255,107,44,.13)" : "var(--track)",
+                      padding: "2px 8px", borderRadius: 999,
+                    }}>{r.type === "match" ? t.type_match : t.type_training}</span>
+                  </td>
+                  {HIST_COLS.map(c => (
+                    <td key={c.key} style={{ padding: "10px 6px", textAlign: "center" }}><RatingCell value={r[c.key]} /></td>
+                  ))}
+                </tr>
+              ))}
+              <tr style={{ borderTop: "2px solid var(--line-strong)" }}>
+                <td style={{ padding: "10px 6px", fontSize: 10.5, fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".05em" }}>{t.hist_avg}</td>
+                {HIST_COLS.map(c => (
+                  <td key={c.key} style={{ padding: "10px 6px", textAlign: "center" }}><RatingCell value={avg[c.key]} strong /></td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--muted)", fontWeight: 600 }}>
+        <Icon name="eval" size={14} color="var(--muted)" /> {t.read_only}
+      </div>
+    </Modal>
+  );
+}
