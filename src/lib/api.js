@@ -23,14 +23,16 @@ export async function getSkills() {
   return data;
 }
 
+const PLAYER_SELECT = `
+  id, team_id, name, number, position, line, age, height_cm, weight_kg, foot,
+  availability, attendance_pct, rating_mode, simple_rating,
+  player_skills ( value, skill:skills ( id, key, label, sort_order, line ) )
+`;
+
 export async function getPlayers(teamId) {
   const { data, error } = await supabase
     .from("players")
-    .select(`
-      id, team_id, name, number, position, line, age, height_cm, weight_kg, foot,
-      availability, attendance_pct,
-      player_skills ( value, skill:skills ( id, key, label, sort_order ) )
-    `)
+    .select(PLAYER_SELECT)
     .eq("team_id", teamId)
     .order("number", { ascending: true });
   if (error) throw error;
@@ -38,9 +40,11 @@ export async function getPlayers(teamId) {
 }
 
 // Flattens the nested skills join into both an ordered list and a key→value map.
+// Advanced sub-skills are line-scoped, so we keep only the skills for this
+// player's line (legacy generic skills, line=null, are ignored).
 function shapePlayer(row) {
   const skillList = (row.player_skills || [])
-    .filter(ps => ps.skill)
+    .filter(ps => ps.skill && ps.skill.line === row.line)
     .map(ps => ({ skillId: ps.skill.id, key: ps.skill.key, label: ps.skill.label, sort: ps.skill.sort_order ?? 0, value: ps.value }))
     .sort((a, b) => a.sort - b.sort);
   const skills = Object.fromEntries(skillList.map(s => [s.key, s.value]));
@@ -53,11 +57,7 @@ export async function updatePlayer(id, patch) {
     .from("players")
     .update(patch)
     .eq("id", id)
-    .select(`
-      id, team_id, name, number, position, line, age, height_cm, weight_kg, foot,
-      availability, attendance_pct,
-      player_skills ( value, skill:skills ( id, key, label, sort_order ) )
-    `)
+    .select(PLAYER_SELECT)
     .single();
   if (error) throw error;
   return shapePlayer(data);

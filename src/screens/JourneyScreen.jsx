@@ -58,9 +58,9 @@ function Journey({ player }) {
     getPlayerTrend(player.id).then(setTrend).catch(e => setTrendErr(e.message || String(e)));
   }, [player.id]);
 
-  // Radar from current Screen 1 skills.
+  // Radar from current Squad sub-skills (rated 1–10, scaled ×10 for the 0–100 chart).
   const radarMetrics = player.skillList.map(s => ({ key: s.key, short: s.label.slice(0, 3).toUpperCase() }));
-  const radarValues = player.skillList.map(s => s.value);
+  const radarValues = player.skillList.map(s => s.value * 10);
 
   const series = useMemo(() => {
     if (!trend) return [];
@@ -94,15 +94,21 @@ function Journey({ player }) {
         {/* Radar (current skills) */}
         <Card>
           <SectionLabel>{t.overview}</SectionLabel>
-          <RadarChart metrics={radarMetrics} values={radarValues} />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-            {player.skillList.map(s => (
-              <div key={s.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", background: "var(--track)", borderRadius: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>{s.label}</span>
-                <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 14, color: ratingColor(s.value) }}>{s.value}</span>
+          {player.skillList.length ? (
+            <>
+              <RadarChart metrics={radarMetrics} values={radarValues} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                {player.skillList.map(s => (
+                  <div key={s.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", background: "var(--track)", borderRadius: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>{s.label}</span>
+                    <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 14, color: ratingColor(s.value * 10) }}>{s.value}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <StateNote>{t.no_skill_breakdown}</StateNote>
+          )}
         </Card>
 
         {/* Trend (overall evaluation score over time) */}
