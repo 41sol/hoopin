@@ -26,7 +26,7 @@ export async function getSkills() {
 const PLAYER_SELECT = `
   id, team_id, name, number, position, line, age, height_cm, weight_kg, foot,
   availability, attendance_pct,
-  player_skills ( value, skill:skills ( id, key, label, sort_order, line ) )
+  player_skills ( value, position, skill:skills ( id, key, label, sort_order, line ) )
 `;
 
 export async function getPlayers(teamId) {
@@ -40,11 +40,13 @@ export async function getPlayers(teamId) {
 }
 
 // Flattens the nested skills join into both an ordered list and a key→value map.
-// Advanced sub-skills are line-scoped, so we keep only the skills for this
-// player's line (legacy generic skills, line=null, are ignored).
+// Sub-skills are position-specific: we keep only the rows for the player's active
+// position (and matching line). Other positions' ratings stay in the table so a
+// player keeps their progress when switched back. Legacy generic skills (line=null)
+// are ignored.
 function shapePlayer(row) {
   const skillList = (row.player_skills || [])
-    .filter(ps => ps.skill && ps.skill.line === row.line)
+    .filter(ps => ps.skill && ps.skill.line === row.line && ps.position === row.position)
     .map(ps => ({ skillId: ps.skill.id, key: ps.skill.key, label: ps.skill.label, sort: ps.skill.sort_order ?? 0, value: ps.value }))
     .sort((a, b) => a.sort - b.sort);
   const skills = Object.fromEntries(skillList.map(s => [s.key, s.value]));
@@ -63,13 +65,29 @@ export async function updatePlayer(id, patch) {
   return shapePlayer(data);
 }
 
-// Persists changed skill values immediately (upsert on the player+skill pair).
-export async function savePlayerSkills(playerId, entries) {
-  const rows = entries.map(e => ({ player_id: playerId, skill_id: e.skillId, value: e.value }));
+// Persists changed skill values for a player's given position (upsert on the
+// player+position+skill triple).
+export async function savePlayerSkills(playerId, position, entries) {
+  const rows = entries.map(e => ({ player_id: playerId, position, skill_id: e.skillId, value: e.value }));
   const { error } = await supabase
     .from("player_skills")
-    .upsert(rows, { onConflict: "player_id,skill_id" });
+    .upsert(rows, { onConflict: "player_id,position,skill_id" });
   if (error) throw error;
+}
+
+// Ensures a player has a sub-skill row for every skill of `line` under `position`,
+// seeding any missing ones at `seedValue`. Existing rows are left untouched
+// (ignoreDuplicates), so switching a player to a former position restores its
+// ratings rather than overwriting them.
+export async function ensurePositionRatings(playerId, position, line, seedValue) {
+  const { data: skills, error } = await supabase.from("skills").select("id").eq("line", line);
+  if (error) throw error;
+  const rows = (skills || []).map(s => ({ player_id: playerId, position, skill_id: s.id, value: seedValue }));
+  if (!rows.length) return;
+  const { error: e2 } = await supabase
+    .from("player_skills")
+    .upsert(rows, { onConflict: "player_id,position,skill_id", ignoreDuplicates: true });
+  if (e2) throw e2;
 }
 
 /* ---------- Screen 2: Evaluations ---------- */

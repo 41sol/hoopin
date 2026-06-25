@@ -4,7 +4,7 @@ import { Avatar, Card, Icon, SectionLabel, SkillBar, ratingColor, overall, AVAIL
 import { ATTENDANCE_LOG, POSITIONS, POSITION_LINE, FEET } from "../data/static.js";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
-import { updatePlayer, savePlayerSkills } from "../lib/api.js";
+import { updatePlayer, savePlayerSkills, ensurePositionRatings } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
 const heroInput = {
@@ -49,17 +49,24 @@ function Profile({ player, onSaved, onBack }) {
   const saveDetails = async () => {
     setSavingDetails(true);
     try {
+      const newLine = POSITION_LINE[form.position] || player.line;
       const patch = {
         name: form.name.trim() || player.name,
         number: form.number === "" ? null : Number(form.number),
         position: form.position,
-        line: POSITION_LINE[form.position] || player.line,
+        line: newLine,
         age: form.age === "" ? null : Number(form.age),
         height_cm: form.height_cm === "" ? null : Number(form.height_cm),
         weight_kg: form.weight_kg === "" ? null : Number(form.weight_kg),
         foot: form.foot,
         availability: form.availability,
       };
+      // Changing position keeps the old position's ratings and switches to (or
+      // creates) the new position's own set — seeded from the current overall,
+      // and never overwriting an existing set, so progress is never lost.
+      if (form.position !== player.position) {
+        await ensurePositionRatings(player.id, form.position, newLine, overall(player.skills));
+      }
       const updated = await updatePlayer(player.id, patch);
       onSaved(updated);
       setEditDetails(false);
@@ -80,7 +87,7 @@ function Profile({ player, onSaved, onBack }) {
     setSavingSkills(true);
     try {
       const entries = player.skillList.map(s => ({ skillId: s.skillId, value: skillVals[s.key] }));
-      await savePlayerSkills(player.id, entries);
+      await savePlayerSkills(player.id, player.position, entries);
       const updated = {
         ...player,
         skillList: player.skillList.map(s => ({ ...s, value: skillVals[s.key] })),
@@ -208,7 +215,7 @@ function Profile({ player, onSaved, onBack }) {
             }}>
               <Icon name={editSkills ? "check" : "edit"} size={13} stroke={2.4} />{editSkills ? (savingSkills ? "…" : t.save) : t.edit}
             </button>
-          }>{t.skills}</SectionLabel>
+          }>{t.skills}{player.position ? " · " + player.position : ""}</SectionLabel>
 
           {editSkills ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
