@@ -6,12 +6,18 @@ import { supabase } from "./supabase.js";
 export async function getTeam() {
   const { data, error } = await supabase
     .from("teams")
-    .select("id, name, age_group, sport")
+    .select("id, name, age_group, sport, auto_apply_eval")
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+// Team preference: auto-apply advanced-evaluation suggestions to squad ratings.
+export async function setAutoApplyEval(teamId, value) {
+  const { error } = await supabase.from("teams").update({ auto_apply_eval: value }).eq("id", teamId);
+  if (error) throw error;
 }
 
 export async function getSkills() {
@@ -121,6 +127,38 @@ export async function createEvaluation({ playerId, teamId, coachName, evalDate, 
 
   const rows = scores.map(s => ({ evaluation_id: evaluation.id, criterion_id: s.criterionId, value: s.value }));
   const { error: e2 } = await supabase.from("evaluation_scores").insert(rows);
+  if (e2) throw e2;
+  return evaluation.id;
+}
+
+// Records an advanced technical evaluation (per position sub-skill) and its
+// per-skill suggestion + outcome. `scores` is
+// [{ skillId, stars, prevValue, suggestedDelta, appliedValue }].
+export async function createSkillEvaluation({ playerId, teamId, position, coachName, evalDate, applied, scores }) {
+  const { data: evaluation, error: e1 } = await supabase
+    .from("skill_evaluations")
+    .insert({
+      player_id: playerId,
+      team_id: teamId,
+      position,
+      coach_name: coachName,
+      eval_date: evalDate,
+      applied: !!applied,
+      applied_at: applied ? new Date().toISOString() : null,
+    })
+    .select("id")
+    .single();
+  if (e1) throw e1;
+
+  const rows = scores.map(s => ({
+    skill_evaluation_id: evaluation.id,
+    skill_id: s.skillId,
+    stars: s.stars,
+    prev_value: s.prevValue,
+    suggested_delta: s.suggestedDelta,
+    applied_value: s.appliedValue ?? null,
+  }));
+  const { error: e2 } = await supabase.from("skill_evaluation_scores").insert(rows);
   if (e2) throw e2;
   return evaluation.id;
 }

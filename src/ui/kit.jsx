@@ -164,18 +164,43 @@ export function SectionLabel({ children, action }) {
   );
 }
 
-/* Interactive star rating (1..max). Click the current value again to clear. */
-export function StarRating({ value, onChange, max = 5, size = 34 }) {
+/* Interactive star rating (1..max). Click the current value again to clear.
+   Pass readOnly to lock it as a non-interactive display of the current value. */
+export function StarRating({ value, onChange, max = 5, size = 34, readOnly = false }) {
   return (
     <div style={{ display: "flex", gap: 6 }}>
       {Array.from({ length: max }).map((_, i) => {
         const active = i < value;
         return (
-          <button key={i} onClick={() => onChange(i + 1 === value ? 0 : i + 1)} aria-label={`${i + 1} stars`}
-            style={{ border: "none", background: "none", padding: 2, cursor: "pointer", lineHeight: 0 }}>
+          <button key={i} disabled={readOnly} onClick={readOnly ? undefined : () => onChange(i + 1 === value ? 0 : i + 1)} aria-label={`${i + 1} stars`}
+            style={{ border: "none", background: "none", padding: 2, cursor: readOnly ? "default" : "pointer", lineHeight: 0 }}>
             <Icon name="star" size={size} stroke={1.6} fill={active ? "current" : "none"}
               color={active ? "var(--brand)" : "var(--line-strong)"} />
           </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Read-only star display with fractional fill (e.g. 4.3 → 4 full + 30% of the
+   5th). Mirrors StarRating's look; used for accumulated/average ratings. */
+export function FractionalStars({ value, max = 5, size = 22, gap = 6 }) {
+  return (
+    <div style={{ display: "inline-flex", gap }}>
+      {Array.from({ length: max }).map((_, i) => {
+        const fill = Math.max(0, Math.min(1, value - i));
+        const gid = `fs-${i}-${Math.round(fill * 100)}`;
+        return (
+          <svg key={i} width={size} height={size} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+            <defs>
+              <linearGradient id={gid}>
+                <stop offset={fill} stopColor="var(--brand)" />
+                <stop offset={fill} stopColor="var(--line-strong)" stopOpacity="0.35" />
+              </linearGradient>
+            </defs>
+            <path d={ICON.star} fill={`url(#${gid})`} stroke="var(--brand)" strokeWidth="1.5" strokeLinejoin="round" />
+          </svg>
         );
       })}
     </div>
