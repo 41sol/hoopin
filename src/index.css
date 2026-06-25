@@ -130,6 +130,10 @@ a { color: inherit; text-decoration: none; }
 .board-grid { display: grid; gap: 14px; grid-template-columns: 1fr; align-items: start; }
 @media (min-width: 900px) { .board-grid { grid-template-columns: 1fr 1fr; } }
 
+/* ---------- Evaluation layout (attendance | evaluation) ---------- */
+.eval-grid { display: grid; gap: 16px; grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 900px) { .eval-grid { grid-template-columns: minmax(0, 400px) 1fr; } }
+
 /* ---------- Modal ---------- */
 .hp-modal-overlay {
   position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle }
 import { Avatar, Card, Icon, Pill, SectionLabel, StarRating, FractionalStars, SkillBar, Segmented, ratingColor, primaryBtn } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
-import { getEvalCriteria, createEvaluation, createSkillEvaluation, setAutoApplyEval, savePlayerSkills } from "../lib/api.js";
+import { getEvalCriteria, createEvaluation, createSkillEvaluation, setAutoApplyEval, savePlayerSkills, getAttendance, setAttendance } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
 const COACH_NAME = "Coach Walid"; // No auth yet — evaluations are recorded under a generic coach.
@@ -104,7 +104,7 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
   }
 
   return (
-    <div style={{ maxWidth: 640, margin: "0 auto" }}>
+    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       {/* Player selector */}
       <SectionLabel>{t.select_player}</SectionLabel>
       <Card pad={10} onClick={() => setPicking(p => !p)} style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", marginBottom: picking ? 8 : 16 }}>
@@ -150,49 +150,162 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
         </div>
       </Card>
 
-      {/* Progress — session criteria + the Technical Skills card (complete once all its sub-skills are rated) */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <div style={{ flex: 1, height: 6, borderRadius: 6, background: "var(--track)", overflow: "hidden" }}>
-          <div style={{ width: (done / total * 100) + "%", height: "100%", background: "var(--brand)", borderRadius: 6, transition: "width .3s" }} />
-        </div>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", fontFamily: "Sora" }}>{done}/{total}</span>
-      </div>
+      {/* Two columns on large screens: attendance (left) · evaluation (right) */}
+      <div className="eval-grid">
+        {/* Attendance (US-4) — squad-wide, keyed to this session's date + type */}
+        <AttendanceCard players={players} teamId={team?.id} date={date} type={type} />
 
-      {/* Technical skills — per-position sub-skills that feed back into Squad ratings (US-3) */}
-      <div style={{ marginBottom: 16 }}>
-        <AdvancedTechnical key={player.id} ref={techRef} player={player} team={team}
-          autoApply={autoApply} onAutoApplyChange={onAutoApplyChange} onApplied={replacePlayer}
-          onRatedChange={setTechComplete} />
-      </div>
-
-      {/* Criteria */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {criteria.map(c => (
-          <Card key={c.key} pad={14}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--brand-tint)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Icon name={c.icon} size={18} color="var(--brand)" />
-              </div>
-              <span style={{ flex: 1, fontWeight: 700, fontSize: 14.5, color: "var(--ink)" }}>{c.label}</span>
-              {ratings[c.key] > 0 && <span style={{ fontFamily: "Sora", fontWeight: 800, color: "var(--brand)", fontSize: 15 }}>{ratings[c.key]}.0</span>}
+        {/* Evaluation — progress, technical skills, criteria, notes, submit */}
+        <div>
+          {/* Progress — session criteria + the Technical Skills card (complete once all its sub-skills are rated) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ flex: 1, height: 6, borderRadius: 6, background: "var(--track)", overflow: "hidden" }}>
+              <div style={{ width: (done / total * 100) + "%", height: "100%", background: "var(--brand)", borderRadius: 6, transition: "width .3s" }} />
             </div>
-            <StarRating value={ratings[c.key] || 0} onChange={v => setR(c.key, v)} />
-          </Card>
-        ))}
-      </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", fontFamily: "Sora" }}>{done}/{total}</span>
+          </div>
 
-      {/* Notes */}
-      <div style={{ marginTop: 14 }}>
-        <SectionLabel>{t.notes}</SectionLabel>
-        <textarea value={note} onChange={e => setNote(e.target.value)} placeholder={t.notes_ph} rows={3}
-          style={{ ...inputStyle, borderRadius: 16, padding: 14, resize: "none" }} />
-      </div>
+          {/* Technical skills — per-position sub-skills that feed back into Squad ratings (US-3) */}
+          <div style={{ marginBottom: 16 }}>
+            <AdvancedTechnical key={player.id} ref={techRef} player={player} team={team}
+              autoApply={autoApply} onAutoApplyChange={onAutoApplyChange} onApplied={replacePlayer}
+              onRatedChange={setTechComplete} />
+          </div>
 
-      <button disabled={!ready} onClick={submit}
-        style={{ ...primaryBtn, marginTop: 16, width: "100%", opacity: ready ? 1 : .45, cursor: ready ? "pointer" : "not-allowed" }}>
-        {submitting ? "…" : t.submit}
-      </button>
+          {/* Criteria */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {criteria.map(c => (
+              <Card key={c.key} pad={14}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--brand-tint)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon name={c.icon} size={18} color="var(--brand)" />
+                  </div>
+                  <span style={{ flex: 1, fontWeight: 700, fontSize: 14.5, color: "var(--ink)" }}>{c.label}</span>
+                  {ratings[c.key] > 0 && <span style={{ fontFamily: "Sora", fontWeight: 800, color: "var(--brand)", fontSize: 15 }}>{ratings[c.key]}.0</span>}
+                </div>
+                <StarRating value={ratings[c.key] || 0} onChange={v => setR(c.key, v)} />
+              </Card>
+            ))}
+          </div>
+
+          {/* Notes */}
+          <div style={{ marginTop: 14 }}>
+            <SectionLabel>{t.notes}</SectionLabel>
+            <textarea value={note} onChange={e => setNote(e.target.value)} placeholder={t.notes_ph} rows={3}
+              style={{ ...inputStyle, borderRadius: 16, padding: 14, resize: "none" }} />
+          </div>
+
+          <button disabled={!ready} onClick={submit}
+            style={{ ...primaryBtn, marginTop: 16, width: "100%", opacity: ready ? 1 : .45, cursor: ready ? "pointer" : "not-allowed" }}>
+            {submitting ? "…" : t.submit}
+          </button>
+        </div>
+      </div>
     </div>
+  );
+}
+
+/* ---------- Attendance (US-4) ---------- */
+
+// Status options share the colours/icons the Profile screen's attendance log uses.
+const ATT_OPTS = [
+  { value: "present", label: t.att_present, color: "#16A35A", icon: "check" },
+  { value: "late",    label: t.att_late,    color: "#CA8A04", icon: "clock" },
+  { value: "absent",  label: t.att_absent,  color: "#DC2626", icon: "x" },
+];
+
+// Squad-wide attendance for the current session (date + type). Each tap upserts
+// immediately and independently of the per-player evaluation submit; switching the
+// session's date/type reloads the statuses already recorded for it.
+function AttendanceCard({ players, teamId, date, type }) {
+  const [status, setStatus] = useState({});   // { playerId: 'present' | 'late' | 'absent' }
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!teamId) { setLoading(false); return; }
+    let alive = true;
+    setLoading(true);
+    getAttendance(teamId, date, type)
+      .then(m => { if (alive) setStatus(m); })
+      .catch(() => { if (alive) setStatus({}); }) // non-fatal: card just starts empty
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [teamId, date, type]);
+
+  const mark = async (playerId, value) => {
+    const next = status[playerId] === value ? null : value; // tap the active status again to clear
+    const prev = status;
+    setStatus(s => {
+      const c = { ...s };
+      if (next == null) delete c[playerId]; else c[playerId] = next;
+      return c;
+    });
+    try {
+      await setAttendance(teamId, playerId, date, type, next);
+    } catch (e) {
+      setStatus(prev); // revert on failure
+      alert("Couldn't save attendance: " + (e.message || e));
+    }
+  };
+
+  const tally = { present: 0, late: 0, absent: 0 };
+  Object.values(status).forEach(s => { if (tally[s] != null) tally[s] += 1; });
+  const marked = tally.present + tally.late + tally.absent;
+
+  return (
+    <Card>
+      <SectionLabel action={
+        loading
+          ? <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--muted)" }}>{t.att_loading}</span>
+          : <span style={{ display: "inline-flex", alignItems: "center", gap: 10, fontSize: 12, fontWeight: 700 }}>
+              {ATT_OPTS.map(o => (
+                <span key={o.value} style={{ display: "inline-flex", alignItems: "center", gap: 4, color: tally[o.value] ? o.color : "var(--muted)" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: o.color, opacity: tally[o.value] ? 1 : .4 }} />
+                  {tally[o.value]}
+                </span>
+              ))}
+            </span>
+      }>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 24, height: 24, borderRadius: 8, background: "var(--brand-tint)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icon name="calendar" size={14} color="var(--brand)" />
+          </span>
+          {t.attendance}
+        </span>
+      </SectionLabel>
+
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {players.map((p, i) => {
+          const cur = status[p.id];
+          return (
+            <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i < players.length - 1 ? "1px solid var(--line)" : "none" }}>
+              <Avatar name={p.name} size={32} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600 }}>#{p.number} · {p.position}</div>
+              </div>
+              <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+                {ATT_OPTS.map(o => {
+                  const active = cur === o.value;
+                  return (
+                    <button key={o.value} onClick={() => mark(p.id, o.value)} aria-label={o.label} title={o.label}
+                      style={{
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        width: 36, height: 36, borderRadius: 11, cursor: "pointer", padding: 0,
+                        border: "1px solid " + (active ? o.color : "var(--line)"),
+                        background: active ? o.color : "var(--card)",
+                        transition: "all .15s",
+                      }}>
+                      <Icon name={o.icon} size={16} color={active ? "#fff" : o.color} stroke={2.6} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 

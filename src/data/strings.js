@@ -25,6 +25,8 @@ export const t = {
   applied_to_squad: "Applied to squad ratings.", rate_all_hint: "Rate every skill to continue.",
   applies_on_submit: "Applies to squad on submit", approved_on_submit: "Approved — applies on submit",
   edit_ratings: "Edit",
+  att_present: "Present", att_late: "Late", att_absent: "Absent",
+  att_marked: "marked", att_loading: "Loading attendance…",
   // Lineup
   formation: "Formation", bench: "Bench", on_pitch: "On pitch",
   drag_hint: "Drag players onto the pitch", save_lineup: "Save lineup",
