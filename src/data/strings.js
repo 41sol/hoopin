@@ -27,6 +27,7 @@ export const t = {
   edit_ratings: "Edit",
   att_present: "Present", att_late: "Late", att_absent: "Absent",
   att_marked: "marked", att_loading: "Loading attendance…",
+  no_attendance: "No attendance recorded yet.",
   // Lineup
   formation: "Formation", bench: "Bench", on_pitch: "On pitch",
   drag_hint: "Drag players onto the pitch", save_lineup: "Save lineup",

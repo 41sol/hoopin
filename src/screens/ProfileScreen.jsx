@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Avatar, Card, Icon, SectionLabel, SkillBar, ratingColor, overall, AVAIL } from "../ui/kit.jsx";
-import { ATTENDANCE_LOG, POSITIONS, POSITION_LINE, FEET } from "../data/static.js";
+import { POSITIONS, POSITION_LINE, FEET } from "../data/static.js";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
-import { updatePlayer, savePlayerSkills, ensurePositionRatings } from "../lib/api.js";
+import { updatePlayer, savePlayerSkills, ensurePositionRatings, getPlayerAttendance } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
 const heroInput = {
@@ -238,28 +238,70 @@ function Profile({ player, onSaved, onBack }) {
           </div>}
         </Card>
 
-        {/* Attendance (illustrative for now) */}
-        <Card>
-          <SectionLabel action={<span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 15, color: "var(--brand)" }}>{Math.round((player.attendance_pct ?? 0) * 100)}%</span>}>{t.recent}</SectionLabel>
+        {/* Attendance — real per-session records logged on the Evaluation screen (US-4) */}
+        <AttendanceLog playerId={player.id} />
+      </div>
+    </div>
+  );
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// "2026-06-25" -> "Jun 25" (parsed by parts to avoid UTC/local off-by-one).
+function fmtSessionDate(d) {
+  const [, m, day] = d.split("-");
+  return `${MONTHS[Number(m) - 1]} ${Number(day)}`;
+}
+
+const ATT_LOG_MAP = {
+  present: ["#16A35A", "check", t.att_present],
+  late:    ["#CA8A04", "clock", t.att_late],
+  absent:  ["#DC2626", "x",     t.att_absent],
+};
+
+// Recent attendance log + a "showed up" rate computed over the fetched window.
+function AttendanceLog({ playerId }) {
+  const [rows, setRows] = useState(null); // null while loading
+
+  useEffect(() => {
+    let alive = true;
+    setRows(null);
+    getPlayerAttendance(playerId, 8)
+      .then(r => { if (alive) setRows(r); })
+      .catch(() => { if (alive) setRows([]); }); // non-fatal: show the empty state
+    return () => { alive = false; };
+  }, [playerId]);
+
+  const total = rows?.length || 0;
+  const attended = (rows || []).filter(r => r.status === "present" || r.status === "late").length;
+  const pct = total ? Math.round((attended / total) * 100) : null;
+
+  const note = msg => <div style={{ padding: "20px 4px", textAlign: "center", color: "var(--muted)", fontSize: 13, fontWeight: 600 }}>{msg}</div>;
+
+  return (
+    <Card>
+      <SectionLabel action={pct != null
+        ? <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 15, color: "var(--brand)" }}>{pct}%</span>
+        : null}>{t.recent}</SectionLabel>
+      {rows === null ? note(t.att_loading)
+        : rows.length === 0 ? note(t.no_attendance)
+        : (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {ATTENDANCE_LOG.map((a, i) => {
-              const map = { present: ["#16A35A", "check", "Present"], late: ["#CA8A04", "clock", "Late"], absent: ["#DC2626", "x", "Absent"] };
-              const [c, ic, lab] = map[a.status];
+            {rows.map((a, i) => {
+              const [c, ic, lab] = ATT_LOG_MAP[a.status] || ATT_LOG_MAP.present;
               return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: i < ATTENDANCE_LOG.length - 1 ? "1px solid var(--line)" : "none" }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: i < rows.length - 1 ? "1px solid var(--line)" : "none" }}>
                   <div style={{ width: 30, height: 30, borderRadius: 9, background: c + "22", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Icon name={ic} size={15} color={c} stroke={2.6} />
                   </div>
-                  <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{a.type}</div>
-                  <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{a.date}</span>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{a.session_type === "match" ? t.type_match : t.type_training}</div>
+                  <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{fmtSessionDate(a.session_date)}</span>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: c, minWidth: 52, textAlign: "end" }}>{lab}</span>
                 </div>
               );
             })}
           </div>
-        </Card>
-      </div>
-    </div>
+        )}
+    </Card>
   );
 }
 

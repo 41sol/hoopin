@@ -177,6 +177,18 @@ export async function getAttendance(teamId, sessionDate, sessionType) {
   return Object.fromEntries((data || []).map(r => [r.player_id, r.status]));
 }
 
+// Recent attendance rows for one player (newest first) for the profile log.
+export async function getPlayerAttendance(playerId, limit = 8) {
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("session_date, session_type, status")
+    .eq("player_id", playerId)
+    .order("session_date", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
 // Sets (or clears, when status is null) one player's attendance for a session.
 export async function setAttendance(teamId, playerId, sessionDate, sessionType, status) {
   if (status == null) {
