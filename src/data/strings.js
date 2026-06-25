@@ -28,6 +28,12 @@ export const t = {
   att_present: "Present", att_late: "Late", att_absent: "Absent",
   att_loading: "Loading attendance…",
   no_attendance: "No attendance recorded yet.",
+  // Rating history (US-5)
+  view_history: "View rating history", rating_history: "Rating history",
+  hist_date: "Date", hist_avg: "avg",
+  col_technical: "Technical", col_tactical: "Tactical", col_workrate: "Work Rate", col_discipline: "Discipline",
+  read_only: "Read-only — past ratings can't be edited or deleted here.",
+  no_history: "No past ratings recorded yet.",
   // Lineup
   formation: "Formation", bench: "Bench", on_pitch: "On pitch",
   drag_hint: "Drag players onto the pitch", save_lineup: "Save lineup",
