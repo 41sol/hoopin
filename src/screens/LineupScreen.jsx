@@ -61,6 +61,11 @@ const tokenName = {
   fontSize: 10.5, fontWeight: 700, color: "#fff", background: "rgba(0,0,0,.35)", padding: "1px 7px",
   borderRadius: 999, whiteSpace: "nowrap", maxWidth: 70, overflow: "hidden", textOverflow: "ellipsis",
 };
+// Assigned-position badge sitting on the player token (US-6).
+const posBadge = {
+  fontSize: 9.5, fontWeight: 800, letterSpacing: ".04em", color: "var(--brand-deep)", background: "#fff",
+  padding: "1px 6px", borderRadius: 999, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,.3)",
+};
 const ctxInput = {
   width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 12,
   padding: "11px 12px", fontFamily: "inherit", fontSize: 14, color: "var(--ink)", background: "var(--card)", outline: "none",
@@ -89,6 +94,7 @@ function Builder({ players, team, formations }) {
   const [formationId, setFormationId] = useState(formations[0].id);
   const [assign, setAssign] = useState(() => autoFill(formations[0].slots, players));
   const [drag, setDrag] = useState(null); // { pid, x, y, from }
+  const [name, setName] = useState("");
   const [matchDate, setMatchDate] = useState(today());
   const [opponent, setOpponent] = useState("");
   const [currentId, setCurrentId] = useState(null);
@@ -110,6 +116,7 @@ function Builder({ players, team, formations }) {
   const roster = players.filter(p => !assignedIds.has(p.id));
   const onCount = Object.values(assign).filter(id => byId(id)?.availability === "in").length;
   const unavailableStarters = Object.values(assign).map(byId).filter(p => p && p.availability === "out");
+  const unavailableCount = unavailableStarters.length;
 
   const changeFormation = (id) => {
     const f = formations.find(x => x.id === id);
@@ -119,6 +126,7 @@ function Builder({ players, team, formations }) {
 
   const newLineup = () => {
     setCurrentId(null);
+    setName("");
     setMatchDate(today());
     setOpponent("");
     setFormationId(formations[0].id);
@@ -130,6 +138,7 @@ function Builder({ players, team, formations }) {
       const d = await getLineupDetail(id);
       setCurrentId(d.id);
       setFormationId(d.formation.id);
+      setName(d.name || "");
       setMatchDate(d.match_date || today());
       setOpponent(d.opponent || "");
       setAssign(d.assign);
@@ -142,7 +151,7 @@ function Builder({ players, team, formations }) {
     setSaving(true);
     try {
       const id = await saveLineup({
-        id: currentId, teamId: team.id, formationId, matchDate, opponent, assign,
+        id: currentId, teamId: team.id, formationId, name, matchDate, opponent, assign,
       });
       setCurrentId(id);
       refreshLineups();
@@ -207,10 +216,16 @@ function Builder({ players, team, formations }) {
               <option value="">{t.new_lineup}</option>
               {lineups.map(l => (
                 <option key={l.id} value={l.id}>
-                  {(l.match_date || "No date")}{l.opponent ? ` · vs ${l.opponent}` : ""} ({l.formation?.name})
+                  {l.name
+                    ? `${l.name} (${l.formation?.name})`
+                    : `${l.match_date || "No date"}${l.opponent ? ` · vs ${l.opponent}` : ""} (${l.formation?.name})`}
                 </option>
               ))}
             </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: "1 1 100%" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>{t.lineup_name}</span>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder={t.lineup_name_ph} style={ctxInput} />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: "1 1 140px" }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>{t.match_date}</span>
@@ -227,9 +242,14 @@ function Builder({ players, team, formations }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
         <Segmented size="sm" value={formationId} onChange={changeFormation}
           options={formations.map(f => ({ value: f.id, label: f.name }))} />
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--muted)" }}>
-          <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#16A35A" }} />{onCount} {t.available_lc}
-        </span>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 14, fontSize: 12.5, fontWeight: 700, color: "var(--muted)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#16A35A" }} />{onCount} {t.available_lc}
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: unavailableCount ? "#B91C1C" : "var(--muted)" }}>
+            <span style={{ width: 9, height: 9, borderRadius: "50%", background: unavailableCount ? "#DC2626" : "var(--line-strong)" }} />{unavailableCount} {t.unavailable_lc}
+          </span>
+        </div>
       </div>
 
       {/* Warn-but-allow: unavailable players on the pitch */}
@@ -262,6 +282,7 @@ function Builder({ players, team, formations }) {
               }}>
                 {p ? (
                   <div onPointerDown={(e) => startDrag(e, pid, i)} style={{ cursor: "grab", touchAction: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                    <span style={posBadge}>{s.slot}</span>
                     <Token player={p} />
                     <span style={tokenName}>{firstName(p.name)}</span>
                   </div>
