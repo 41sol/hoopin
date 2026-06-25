@@ -58,7 +58,7 @@ function Journey({ player }) {
     getPlayerTrend(player.id).then(setTrend).catch(e => setTrendErr(e.message || String(e)));
   }, [player.id]);
 
-  // Radar from current Screen 1 skills.
+  // Radar from current Squad sub-skills (0–100).
   const radarMetrics = player.skillList.map(s => ({ key: s.key, short: s.label.slice(0, 3).toUpperCase() }));
   const radarValues = player.skillList.map(s => s.value);
 

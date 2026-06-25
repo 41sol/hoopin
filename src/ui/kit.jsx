@@ -91,6 +91,7 @@ export function ratingColor(v) {
   return "#DC2626";
 }
 
+// Overall = average of the (0–100) sub-skill ratings.
 export function overall(skills) {
   const v = Object.values(skills);
   if (!v.length) return 0;
