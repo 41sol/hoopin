@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Avatar, Card, Icon, Pill, Segmented, SectionLabel, AVAIL, primaryBtn } from "../ui/kit.jsx";
+import { Avatar, Card, Icon, Pill, Segmented, SectionLabel, AVAIL, primaryBtn, overall, ratingColor } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
 import { getFormations, getLineups, getLineupDetail, saveLineup, getPositionRatings } from "../lib/api.js";
@@ -10,16 +10,26 @@ import StateNote from "../components/StateNote.jsx";
 const today = () => new Date().toISOString().slice(0, 10);
 const firstName = (name) => name.split(" ")[0];
 
-function Token({ player, big }) {
+function Token({ player, big, rating }) {
   const ac = AVAIL[player.availability].color;
   const sz = big ? 52 : 44;
   return (
     <div style={{
-      width: sz, height: sz, borderRadius: 15, background: "#fff",
+      width: sz, height: sz, borderRadius: 15, background: "#fff", position: "relative",
       display: "flex", alignItems: "center", justifyContent: "center",
       fontFamily: "Sora", fontWeight: 800, fontSize: sz * 0.4, color: "var(--brand-deep)",
       boxShadow: `0 3px 8px rgba(0,0,0,.3), 0 0 0 3px ${ac}`,
-    }}>{player.number}</div>
+    }}>
+      {player.number}
+      {rating != null && (
+        <span style={{
+          position: "absolute", bottom: -7, insetInlineEnd: -9, minWidth: 20, height: 18, padding: "0 5px",
+          borderRadius: 999, background: ratingColor(rating), color: "#fff", fontFamily: "Sora",
+          fontWeight: 800, fontSize: 10.5, lineHeight: "18px", textAlign: "center",
+          border: "1.5px solid #fff", boxShadow: "0 1px 3px rgba(0,0,0,.35)",
+        }}>{rating}</span>
+      )}
+    </div>
   );
 }
 
@@ -48,7 +58,8 @@ const tokenName = {
   fontSize: 10.5, fontWeight: 700, color: "#fff", background: "rgba(0,0,0,.35)", padding: "1px 7px",
   borderRadius: 999, whiteSpace: "nowrap", maxWidth: 70, overflow: "hidden", textOverflow: "ellipsis",
 };
-// Assigned-position badge sitting on the player token (US-6).
+// Badge sitting above the player token showing the player's own registered
+// position (not the formation slot they're filling).
 const posBadge = {
   fontSize: 9.5, fontWeight: 800, letterSpacing: ".04em", color: "var(--brand-deep)", background: "#fff",
   padding: "1px 6px", borderRadius: 999, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,.3)",
@@ -309,8 +320,8 @@ function Builder({ players, team, formations, ratings }) {
               }}>
                 {p ? (
                   <div onPointerDown={(e) => startDrag(e, pid, i)} style={{ cursor: "grab", touchAction: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                    <span style={posBadge}>{s.slot}</span>
-                    <Token player={p} />
+                    <span style={posBadge}>{p.position}</span>
+                    <Token player={p} rating={overall(p.skills)} />
                     <span style={tokenName}>{firstName(p.name)}</span>
                   </div>
                 ) : (
@@ -334,13 +345,16 @@ function Builder({ players, team, formations, ratings }) {
             {roster.length === 0 && <span style={{ fontSize: 13, color: "var(--muted)", padding: "8px 0" }}>{t.all_on_pitch}</span>}
             {roster.map(p => (
               <div key={p.id} onPointerDown={(e) => startDrag(e, p.id, null)}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "grab", touchAction: "none", flexShrink: 0, width: 60 }}>
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "grab", touchAction: "none", flexShrink: 0, width: 66 }}>
                 <div style={{ position: "relative" }}>
                   <Avatar name={p.name} size={48} />
                   <span style={{ position: "absolute", bottom: -3, insetInlineEnd: -3, width: 14, height: 14, borderRadius: "50%", background: AVAIL[p.availability].color, border: "2.5px solid var(--card)" }} />
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 60, textAlign: "center" }}>{firstName(p.name)}</span>
-                <Pill color="brand">{p.position}</Pill>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 66, textAlign: "center" }}>{firstName(p.name)}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <Pill color="brand">{p.position}</Pill>
+                  <span style={{ fontFamily: "Sora", fontWeight: 800, fontSize: 12.5, color: ratingColor(overall(p.skills)) }}>{overall(p.skills)}</span>
+                </div>
               </div>
             ))}
           </div>
