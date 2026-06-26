@@ -124,6 +124,7 @@ function Builder({ players, team, formations, ratings }) {
   const assignedIds = new Set(Object.values(assign));
   const roster = players.filter(p => !assignedIds.has(p.id));
   const onCount = Object.values(assign).filter(id => byId(id)?.availability === "in").length;
+  const tentativeCount = Object.values(assign).filter(id => byId(id)?.availability === "maybe").length;
   const unavailableStarters = Object.values(assign).map(byId).filter(p => p && p.availability === "out");
   const unavailableCount = unavailableStarters.length;
 
@@ -271,6 +272,9 @@ function Builder({ players, team, formations, ratings }) {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 14, fontSize: 12.5, fontWeight: 700, color: "var(--muted)" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#16A35A" }} />{onCount} {t.available_lc}
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: tentativeCount ? "#A16207" : "var(--muted)" }}>
+            <span style={{ width: 9, height: 9, borderRadius: "50%", background: tentativeCount ? "#CA8A04" : "var(--line-strong)" }} />{tentativeCount} {t.tentative_lc}
           </span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: unavailableCount ? "#B91C1C" : "var(--muted)" }}>
             <span style={{ width: 9, height: 9, borderRadius: "50%", background: unavailableCount ? "#DC2626" : "var(--line-strong)" }} />{unavailableCount} {t.unavailable_lc}
