@@ -39,6 +39,8 @@ export const t = {
   drag_hint: "Drag players onto the pitch", save_lineup: "Save lineup",
   new_lineup: "New lineup", load_lineup: "Load lineup", match_date: "Match date",
   all_on_pitch: "All players on the pitch.", available_lc: "available",
+  unavailable_lc: "unavailable", lineup_name: "Lineup name",
+  lineup_name_ph: "e.g. Cup final XI",
   unavailable_warning: "marked unavailable in the lineup",
   // Journey
   overview: "Skill overview", improving: "Improving", attendance: "Attendance",
