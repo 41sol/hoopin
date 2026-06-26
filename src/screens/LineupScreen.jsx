@@ -3,25 +3,12 @@ import { createPortal } from "react-dom";
 import { Avatar, Card, Icon, Pill, Segmented, SectionLabel, AVAIL, primaryBtn } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
-import { getFormations, getLineups, getLineupDetail, saveLineup } from "../lib/api.js";
+import { getFormations, getLineups, getLineupDetail, saveLineup, getPositionRatings } from "../lib/api.js";
+import { suggestLineup } from "../lib/lineup.js";
 import StateNote from "../components/StateNote.jsx";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const firstName = (name) => name.split(" ")[0];
-
-// Greedy assignment: prefer same line + available, then same line, then any available.
-function autoFill(slots, players) {
-  const used = new Set();
-  const assign = {};
-  slots.forEach((s, i) => {
-    const pick =
-      players.find(p => !used.has(p.id) && p.line === s.line && p.availability !== "out") ||
-      players.find(p => !used.has(p.id) && p.line === s.line) ||
-      players.find(p => !used.has(p.id) && p.availability !== "out");
-    if (pick) { assign[i] = pick.id; used.add(pick.id); }
-  });
-  return assign;
-}
 
 function Token({ player, big }) {
   const ac = AVAIL[player.availability].color;
@@ -70,29 +57,40 @@ const ctxInput = {
   width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 12,
   padding: "11px 12px", fontFamily: "inherit", fontSize: 14, color: "var(--ink)", background: "var(--card)", outline: "none",
 };
+// Secondary "Suggest best XI" action (US-7) — outlined brand pill.
+const suggestBtn = {
+  display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
+  border: "1px solid var(--brand)", background: "var(--brand-tint)", color: "var(--brand-deep)",
+  borderRadius: 12, padding: "7px 13px", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+};
 
 export default function LineupScreen() {
   const { players, team, loading, error } = useSquad();
   const [formations, setFormations] = useState(null);
+  const [ratings, setRatings] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
 
   useEffect(() => {
     getFormations().then(setFormations).catch(e => setLoadErr(e.message || String(e)));
   }, []);
+  useEffect(() => {
+    if (team?.id) getPositionRatings(team.id).then(setRatings).catch(e => setLoadErr(e.message || String(e)));
+  }, [team?.id]);
 
-  if (loading || !formations) return <StateNote>Loading lineup builder…</StateNote>;
+  if (loading || !formations || !ratings) return <StateNote>Loading lineup builder…</StateNote>;
   if (error) return <StateNote tone="error">Couldn't load the squad: {error}</StateNote>;
   if (loadErr) return <StateNote tone="error">Couldn't load formations: {loadErr}</StateNote>;
   if (!formations.length) return <StateNote tone="error">No formations configured.</StateNote>;
 
-  return <Builder players={players} team={team} formations={formations} />;
+  return <Builder players={players} team={team} formations={formations} ratings={ratings} />;
 }
 
-function Builder({ players, team, formations }) {
+function Builder({ players, team, formations, ratings }) {
   const byId = id => players.find(p => p.id === id);
 
   const [formationId, setFormationId] = useState(formations[0].id);
-  const [assign, setAssign] = useState(() => autoFill(formations[0].slots, players));
+  const [assign, setAssign] = useState(() => suggestLineup(formations[0].slots, players, ratings));
+  const [suggested, setSuggested] = useState(true);
   const [drag, setDrag] = useState(null); // { pid, x, y, from }
   const [name, setName] = useState("");
   const [matchDate, setMatchDate] = useState(today());
@@ -121,7 +119,8 @@ function Builder({ players, team, formations }) {
   const changeFormation = (id) => {
     const f = formations.find(x => x.id === id);
     setFormationId(id);
-    setAssign(autoFill(f.slots, players));
+    setAssign(suggestLineup(f.slots, players, ratings));
+    setSuggested(true);
   };
 
   const newLineup = () => {
@@ -130,7 +129,14 @@ function Builder({ players, team, formations }) {
     setMatchDate(today());
     setOpponent("");
     setFormationId(formations[0].id);
-    setAssign(autoFill(formations[0].slots, players));
+    setAssign(suggestLineup(formations[0].slots, players, ratings));
+    setSuggested(true);
+  };
+
+  // Explicit one-tap "best XI" for the current formation (US-7).
+  const suggestNow = () => {
+    setAssign(suggestLineup(slots, players, ratings));
+    setSuggested(true);
   };
 
   const loadExisting = async (id) => {
@@ -142,6 +148,7 @@ function Builder({ players, team, formations }) {
       setMatchDate(d.match_date || today());
       setOpponent(d.opponent || "");
       setAssign(d.assign);
+      setSuggested(false);
     } catch (e) {
       alert("Couldn't load lineup: " + (e.message || e));
     }
@@ -195,8 +202,10 @@ function Builder({ players, team, formations }) {
           na[best] = d.pid;
           return na;
         });
+        setSuggested(false);
       } else if (d.from != null) {
         setAssign(a => { const na = { ...a }; delete na[d.from]; return na; });
+        setSuggested(false);
       }
       setDrag(null);
     };
@@ -240,8 +249,14 @@ function Builder({ players, team, formations }) {
 
       {/* Formation + on-pitch count */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
-        <Segmented size="sm" value={formationId} onChange={changeFormation}
-          options={formations.map(f => ({ value: f.id, label: f.name }))} />
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <Segmented size="sm" value={formationId} onChange={changeFormation}
+            options={formations.map(f => ({ value: f.id, label: f.name }))} />
+          <button onClick={suggestNow} style={suggestBtn}>
+            <Icon name="trophy" size={16} stroke={2.2} />
+            {t.suggest_xi}
+          </button>
+        </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 14, fontSize: 12.5, fontWeight: 700, color: "var(--muted)" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#16A35A" }} />{onCount} {t.available_lc}
@@ -251,6 +266,18 @@ function Builder({ players, team, formations }) {
           </span>
         </div>
       </div>
+
+      {/* US-7: hint shown while the on-pitch XI is the auto-suggestion */}
+      {suggested && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, marginBottom: 12, padding: "10px 12px",
+          background: "var(--brand-tint)", border: "1px solid var(--line)", borderRadius: 12,
+          color: "var(--brand-deep)", fontSize: 12.5, fontWeight: 600,
+        }}>
+          <Icon name="trophy" size={15} color="var(--brand)" stroke={2.4} />
+          {t.suggested_note}
+        </div>
+      )}
 
       {/* Warn-but-allow: unavailable players on the pitch */}
       {unavailableStarters.length > 0 && (

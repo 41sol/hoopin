@@ -42,6 +42,8 @@ export const t = {
   unavailable_lc: "unavailable", lineup_name: "Lineup name",
   lineup_name_ph: "e.g. Cup final XI",
   unavailable_warning: "marked unavailable in the lineup",
+  suggest_xi: "Suggest best XI",
+  suggested_note: "Best available XI placed by rating — drag to fine-tune.",
   // Journey
   overview: "Skill overview", improving: "Improving", attendance: "Attendance",
   last_3m: "Last 3 months", last_6m: "Last 6 months",
