@@ -265,6 +265,44 @@ export async function getFormations() {
   return data;
 }
 
+// Per-position overall ratings for every player on the team, used by the
+// "suggest best XI" feature (US-7). Returns { [playerId]: { [position]: overall } }
+// where overall is the average (0–100) of that position's line-scoped sub-skills.
+// Legacy generic skills (skills.line = null) are excluded so the numbers match
+// the per-position overalls shown elsewhere.
+export async function getPositionRatings(teamId) {
+  const { data: roster, error: e0 } = await supabase
+    .from("players").select("id").eq("team_id", teamId);
+  if (e0) throw e0;
+  const ids = (roster || []).map(r => r.id);
+  if (!ids.length) return {};
+
+  const { data: skills, error: e1 } = await supabase.from("skills").select("id, line");
+  if (e1) throw e1;
+  const lineOf = new Map((skills || []).map(s => [s.id, s.line]));
+
+  const { data, error } = await supabase
+    .from("player_skills")
+    .select("player_id, value, position, skill_id")
+    .in("player_id", ids);
+  if (error) throw error;
+
+  const acc = {}; // playerId -> position -> { sum, n }
+  for (const r of data || []) {
+    if (!lineOf.get(r.skill_id)) continue; // skip legacy generic (line = null)
+    const byPos = (acc[r.player_id] ||= {});
+    const cell = (byPos[r.position] ||= { sum: 0, n: 0 });
+    cell.sum += r.value;
+    cell.n += 1;
+  }
+  const out = {};
+  for (const [pid, byPos] of Object.entries(acc)) {
+    out[pid] = {};
+    for (const [pos, c] of Object.entries(byPos)) out[pid][pos] = Math.round(c.sum / c.n);
+  }
+  return out;
+}
+
 // Saved lineups for a team (newest first) for the load picker.
 export async function getLineups(teamId) {
   const { data, error } = await supabase
