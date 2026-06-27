@@ -129,10 +129,12 @@ a { color: inherit; text-decoration: none; }
 .lineup-context > label.lc-wide { flex-basis: 100%; }
 @media (max-width: 559px) { .lineup-context > label { flex-basis: 100%; } }
 
-/* Pitch keeps a 3:4 ratio but is capped + centred on mobile so it doesn't grow
-   disproportionately large on wider phones/tablets; full size in the desktop
-   two-column grid (#36). */
-.lineup-pitch { width: 100%; max-width: 360px; margin-inline: auto; aspect-ratio: 3 / 4; }
+/* Lineup board: keeps a 3:4 ratio and is always centred horizontally. On phones
+   it fills the content width so it scales to the device and lines up with the
+   rest of the screen; on tablets it's capped so it doesn't dominate; in the
+   desktop two-column grid it fills its column (#36). */
+.lineup-pitch { display: block; width: 100%; max-width: 100%; margin-inline: auto; aspect-ratio: 3 / 4; }
+@media (min-width: 600px) and (max-width: 899px) { .lineup-pitch { max-width: 420px; } }
 @media (min-width: 900px) { .lineup-pitch { max-width: none; margin-inline: 0; } }
 
 /* ---------- Journey dashboard layout ---------- */
