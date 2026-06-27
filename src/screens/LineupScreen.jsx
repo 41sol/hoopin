@@ -232,7 +232,9 @@ function Builder({ players, team, formations, ratings }) {
   }, [drag ? true : false, formationId]);
 
   return (
-    <div style={{ userSelect: "none" }}>
+    // -webkit- prefixes are required for iOS Safari: without them a touch on a
+    // draggable token starts native text selection instead of a drag (#35).
+    <div style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}>
       {/* Match context toolbar */}
       <Card style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
@@ -328,7 +330,7 @@ function Builder({ players, team, formations, ratings }) {
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 3, opacity: isDragging ? 0.3 : 1,
               }}>
                 {p ? (
-                  <div onPointerDown={(e) => startDrag(e, pid, i)} style={{ cursor: "grab", touchAction: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                  <div onPointerDown={(e) => startDrag(e, pid, i)} style={{ cursor: "grab", touchAction: "none", WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
                     <span style={posBadge}>{p.position}</span>
                     <Token player={p} rating={overall(p.skills)} />
                     <span style={tokenName}>{firstName(p.name)}</span>
@@ -354,7 +356,7 @@ function Builder({ players, team, formations, ratings }) {
             {roster.length === 0 && <span style={{ fontSize: 13, color: "var(--muted)", padding: "8px 0" }}>{t.all_on_pitch}</span>}
             {roster.map(p => (
               <div key={p.id} onPointerDown={(e) => startDrag(e, p.id, null)}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "grab", touchAction: "none", flexShrink: 0, width: 66 }}>
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "grab", touchAction: "none", WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none", flexShrink: 0, width: 66 }}>
                 <div style={{ position: "relative" }}>
                   <Avatar name={p.name} size={48} />
                   <span style={{ position: "absolute", bottom: -3, insetInlineEnd: -3, width: 14, height: 14, borderRadius: "50%", background: AVAIL[p.availability].color, border: "2.5px solid var(--card)" }} />
