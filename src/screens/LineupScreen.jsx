@@ -183,48 +183,93 @@ function Builder({ players, team, formations, ratings }) {
     }
   };
 
-  // ----- drag & drop (pointer events: mouse + touch) -----
-  const startDrag = (e, pid, from) => {
+  // ----- drag & drop (mouse + touch) -----
+  // iOS Safari does not reliably drive a drag from Pointer Events here, so mouse
+  // and touch are handled explicitly. The move/end listeners are attached once
+  // and read live state through refs; the touch listener is non-passive so it
+  // can preventDefault() and stop the page scrolling mid-drag.
+  const slotsRef = useRef(slots);
+  slotsRef.current = slots;
+  const touchDraggingRef = useRef(false); // ignore the synthetic mouse events Safari fires after a touch
+
+  const beginDrag = (pid, from, clientX, clientY) => setDrag({ pid, from, x: clientX, y: clientY });
+
+  const onTokenMouseDown = (e, pid, from) => {
+    if (touchDraggingRef.current) return; // a touch already started this drag
     e.preventDefault();
-    setDrag({ pid, x: e.clientX, y: e.clientY, from });
+    beginDrag(pid, from, e.clientX, e.clientY);
+  };
+  const onTokenTouchStart = (e, pid, from) => {
+    touchDraggingRef.current = true;
+    const tch = e.touches[0];
+    if (tch) beginDrag(pid, from, tch.clientX, tch.clientY);
   };
 
   useEffect(() => {
-    if (!drag) return;
-    const move = (e) => setDrag(d => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
-    const up = (e) => {
+    // Resolve a release at (clientX, clientY) into a slot assignment.
+    const dropAt = (clientX, clientY) => {
       const d = dragRef.current;
-      if (!d) { return; }
-      const rect = pitchRef.current.getBoundingClientRect();
-      const inside = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
-      if (inside) {
-        let best = -1, bestDist = Infinity;
-        slots.forEach((s, i) => {
-          const sx = rect.left + (s.x / 100) * rect.width;
-          const sy = rect.top + (s.y / 100) * rect.height;
-          const dist = Math.hypot(sx - e.clientX, sy - e.clientY);
-          if (dist < bestDist) { bestDist = dist; best = i; }
-        });
-        setAssign(a => {
-          const na = { ...a };
-          if (d.from != null) delete na[d.from];
-          else Object.keys(na).forEach(k => { if (na[k] === d.pid) delete na[k]; });
-          const occupant = na[best];
-          if (occupant && d.from != null) na[d.from] = occupant;
-          na[best] = d.pid;
-          return na;
-        });
-        setSuggested(false);
-      } else if (d.from != null) {
-        setAssign(a => { const na = { ...a }; delete na[d.from]; return na; });
-        setSuggested(false);
+      if (!d) return;
+      if (clientX != null && clientY != null && pitchRef.current) {
+        const rect = pitchRef.current.getBoundingClientRect();
+        const inside = clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+        if (inside) {
+          const slots = slotsRef.current;
+          let best = -1, bestDist = Infinity;
+          slots.forEach((s, i) => {
+            const sx = rect.left + (s.x / 100) * rect.width;
+            const sy = rect.top + (s.y / 100) * rect.height;
+            const dist = Math.hypot(sx - clientX, sy - clientY);
+            if (dist < bestDist) { bestDist = dist; best = i; }
+          });
+          setAssign(a => {
+            const na = { ...a };
+            if (d.from != null) delete na[d.from];
+            else Object.keys(na).forEach(k => { if (na[k] === d.pid) delete na[k]; });
+            const occupant = na[best];
+            if (occupant && d.from != null) na[d.from] = occupant;
+            na[best] = d.pid;
+            return na;
+          });
+          setSuggested(false);
+        } else if (d.from != null) {
+          setAssign(a => { const na = { ...a }; delete na[d.from]; return na; });
+          setSuggested(false);
+        }
       }
       setDrag(null);
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
-  }, [drag ? true : false, formationId]);
+
+    const onMouseMove = (e) => { if (dragRef.current) setDrag(d => (d ? { ...d, x: e.clientX, y: e.clientY } : d)); };
+    const onMouseUp = (e) => { if (dragRef.current) dropAt(e.clientX, e.clientY); };
+    const onTouchMove = (e) => {
+      if (!dragRef.current) return;
+      const tch = e.touches[0];
+      if (!tch) return;
+      e.preventDefault(); // keep the page from scrolling while a token is being dragged
+      setDrag(d => (d ? { ...d, x: tch.clientX, y: tch.clientY } : d));
+    };
+    const onTouchEnd = (e) => {
+      if (!dragRef.current) { touchDraggingRef.current = false; return; }
+      const tch = e.changedTouches[0];
+      dropAt(tch ? tch.clientX : null, tch ? tch.clientY : null);
+      // Release the guard only after Safari's synthetic mouse events would have fired.
+      setTimeout(() => { touchDraggingRef.current = false; }, 400);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd);
+    window.addEventListener("touchcancel", onTouchEnd);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, []);
 
   return (
     // -webkit- prefixes are required for iOS Safari: without them a touch on a
@@ -325,7 +370,7 @@ function Builder({ players, team, formations, ratings }) {
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 3, opacity: isDragging ? 0.3 : 1,
               }}>
                 {p ? (
-                  <div onPointerDown={(e) => startDrag(e, pid, i)} style={{ cursor: "grab", touchAction: "none", WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                  <div onMouseDown={(e) => onTokenMouseDown(e, pid, i)} onTouchStart={(e) => onTokenTouchStart(e, pid, i)} style={{ cursor: "grab", touchAction: "none", WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
                     <span style={posBadge}>{p.position}</span>
                     <Token player={p} rating={overall(p.skills)} />
                     <span style={tokenName}>{firstName(p.name)}</span>
@@ -350,7 +395,7 @@ function Builder({ players, team, formations, ratings }) {
           <div className="bench-list">
             {roster.length === 0 && <span style={{ fontSize: 13, color: "var(--muted)", padding: "8px 0" }}>{t.all_on_pitch}</span>}
             {roster.map(p => (
-              <div key={p.id} onPointerDown={(e) => startDrag(e, p.id, null)}
+              <div key={p.id} onMouseDown={(e) => onTokenMouseDown(e, p.id, null)} onTouchStart={(e) => onTokenTouchStart(e, p.id, null)}
                 style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "grab", touchAction: "none", WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none", flexShrink: 0, width: 66 }}>
                 <div style={{ position: "relative" }}>
                   <Avatar name={p.name} size={48} />
