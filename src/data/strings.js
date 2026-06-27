@@ -6,11 +6,21 @@ export const t = {
   journey_title: "My Journey", board_title: "Announcements",
   skills: "Skill ratings", recent: "Recent attendance", details: "Player details",
   edit: "Edit", save: "Save", saved: "Saved", cancel: "Cancel",
+  // Deactivate / soft-delete (#47)
+  deactivate: "Deactivate", deactivating: "Deactivating…",
+  deactivate_player: "Deactivate player",
+  confirm_deactivate: "Deactivate this player? They'll be hidden from the squad but their record is kept.",
   coach_view: "Coach view",
   avail_in: "Available", avail_maybe: "Maybe", avail_out: "Unavailable",
   age: "Age", height: "Height", weight: "Weight", pos: "Position", foot: "Foot", number: "Number",
   overall: "Overall", availability: "Availability",
   search_ph: "Search players…", sort: "Sort", filter: "Filter",
+  // Add player (#46)
+  add_player: "Add Player", add_player_title: "New player",
+  player_name: "Full name", player_name_ph: "e.g. Omar Khaled",
+  create_player: "Create player", creating: "Creating…",
+  name_required: "Please enter the player's name.",
+  skills_default_hint: "Skill ratings start at 50 — adjust any before creating.",
   // Evaluation
   select_player: "Select player", session: "Session", date: "Date",
   type_training: "Training", type_match: "Match", opponent: "Opponent",
