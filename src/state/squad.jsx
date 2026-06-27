@@ -32,8 +32,12 @@ export function SquadProvider({ children }) {
     setPlayers(prev => prev.map(p => (p.id === updated.id ? updated : p)));
   }, []);
 
+  const addPlayer = useCallback((player) => {
+    setPlayers(prev => [...prev, player]);
+  }, []);
+
   return (
-    <SquadContext.Provider value={{ team, players, loading, error, reload: load, replacePlayer }}>
+    <SquadContext.Provider value={{ team, players, loading, error, reload: load, replacePlayer, addPlayer }}>
       {children}
     </SquadContext.Provider>
   );
