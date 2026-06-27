@@ -140,10 +140,10 @@ function Profile({ player, onSaved, onBack }) {
               {editDetails ? (
                 <>
                   <input type="number" value={form.number} onChange={e => setF("number", e.target.value)} placeholder="#" style={{ ...heroInput, width: 56, fontSize: 14 }} />
-                  <select value={form.position} onChange={e => setF("position", e.target.value)} style={{ ...heroSelect, width: 84 }}>
+                  <select className="hero-select" value={form.position} onChange={e => setF("position", e.target.value)} style={{ ...heroSelect, width: 84 }}>
                     {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
-                  <select value={form.availability} onChange={e => setF("availability", e.target.value)} style={{ ...heroSelect, width: 120 }}>
+                  <select className="hero-select" value={form.availability} onChange={e => setF("availability", e.target.value)} style={{ ...heroSelect, width: 120 }}>
                     <option value="in">{t.avail_in}</option>
                     <option value="maybe">{t.avail_maybe}</option>
                     <option value="out">{t.avail_out}</option>
@@ -192,7 +192,7 @@ function Profile({ player, onSaved, onBack }) {
           {/* Foot — select when editing */}
           <div style={{ flex: 1, textAlign: "center", padding: "10px 4px" }}>
             {editDetails ? (
-              <select value={form.foot} onChange={e => setF("foot", e.target.value)} style={{ ...heroSelect, fontSize: 14 }}>
+              <select className="hero-select" value={form.foot} onChange={e => setF("foot", e.target.value)} style={{ ...heroSelect, fontSize: 14 }}>
                 {FEET.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             ) : (
