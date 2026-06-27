@@ -218,6 +218,37 @@ export async function createSkillEvaluation({ playerId, teamId, position, coachN
   return evaluation.id;
 }
 
+/* ---------- #48: Moving-average skill suggestions ---------- */
+
+// Per-skill aggregates of a player's recorded rating data points for a position.
+// Drives the Technical Skills card's running-average suggestion (#48).
+// Returns { [skillId]: { sum, count } } over every prior rating (eval + manual).
+export async function getSkillRatingStats(playerId, position) {
+  const { data, error } = await supabase
+    .from("skill_ratings")
+    .select("skill_id, value")
+    .eq("player_id", playerId)
+    .eq("position", position);
+  if (error) throw error;
+  const out = {};
+  for (const r of data || []) {
+    const cell = (out[r.skill_id] ||= { sum: 0, count: 0 });
+    cell.sum += r.value;
+    cell.count += 1;
+  }
+  return out;
+}
+
+// Appends rating data points (one per skill) to the moving-average log so future
+// suggestions average across them. `entries` is [{ skillId, value }] on the 0–100
+// scale; `source` is 'eval' (a star rating, value = stars×20) or 'manual' (a squad edit).
+export async function recordSkillRatings(playerId, position, entries, source = "eval") {
+  const rows = (entries || []).map(e => ({ player_id: playerId, position, skill_id: e.skillId, value: e.value, source }));
+  if (!rows.length) return;
+  const { error } = await supabase.from("skill_ratings").insert(rows);
+  if (error) throw error;
+}
+
 /* ---------- US-5: Overall rating history ---------- */
 
 // Read-only, newest-first log of a player's past ratings. Each row is one

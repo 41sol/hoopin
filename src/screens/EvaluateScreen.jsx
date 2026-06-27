@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImper
 import { Avatar, Card, Icon, Pill, SectionLabel, StarRating, FractionalStars, SkillBar, Segmented, ratingColor, primaryBtn } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
-import { getEvalCriteria, createEvaluation, createSkillEvaluation, setAutoApplyEval, savePlayerSkills, getSessionAttendance, setAttendance, getRatingHistory } from "../lib/api.js";
+import { getEvalCriteria, createEvaluation, createSkillEvaluation, setAutoApplyEval, savePlayerSkills, getSessionAttendance, setAttendance, getRatingHistory, getSkillRatingStats, recordSkillRatings } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
 const COACH_NAME = "Coach Walid"; // No auth yet — evaluations are recorded under a generic coach.
@@ -355,12 +355,17 @@ function AttendanceCard({ player, teamId, date, type }) {
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const STAR_TO_100 = 20; // 5 stars == 100, matching the simplified card's mapping.
 
-// Per-skill suggestion vs the current squad value: nudge toward the eval score
-// (stars×20), only when it differs by ≥5, capped at ±10 (US-3 formula).
-function suggestionFor(value, stars) {
-  const raw = (stars || 0) * STAR_TO_100 - value;
-  const delta = Math.abs(raw) >= 5 ? clamp(Math.round(raw), -10, 10) : 0;
-  return { delta, newValue: clamp(value + delta, 0, 100) };
+// Per-skill suggestion = the true running average across ALL of the player's
+// recorded ratings for this skill plus the new one just given (stars×20). This
+// replaces the old capped ±10 nudge (#48). `stat` is { sum, count } of the prior
+// data points (eval + manual). With no prior ratings the average is the new
+// rating itself.
+function suggestionFor(value, stars, stat) {
+  if (!stars) return { delta: 0, newValue: value };
+  const sum = (stat?.sum || 0) + stars * STAR_TO_100;
+  const count = (stat?.count || 0) + 1;
+  const newValue = clamp(Math.round(sum / count), 0, 100);
+  return { delta: newValue - value, newValue };
 }
 
 const actionBtn = {
@@ -399,6 +404,17 @@ const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, 
   const [modal, setModal] = useState(false);
   const [approved, setApproved] = useState(false); // coach approved applying (auto-apply off flow)
 
+  // Prior per-skill rating data points (eval + manual), keyed by skillId. Drives
+  // the running-average suggestion (#48). Refetched per player/position mount.
+  const [stats, setStats] = useState({});
+  useEffect(() => {
+    let alive = true;
+    getSkillRatingStats(player.id, player.position)
+      .then(s => { if (alive) setStats(s); })
+      .catch(() => { if (alive) setStats({}); }); // non-fatal: treat as no prior ratings
+    return () => { alive = false; };
+  }, [player.id, player.position]);
+
   const setStar = (k, v) => setStars(s => ({ ...s, [k]: v }));
 
   const ratedCount = skills.filter(s => (stars[s.key] || 0) > 0).length;
@@ -411,7 +427,7 @@ const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, 
   const accumulated = skills.length ? skills.reduce((a, s) => a + (stars[s.key] || 0), 0) / skills.length : 0;
   const rows = skills.map(s => {
     const st = stars[s.key] || 0;
-    const { delta, newValue } = suggestionFor(s.value, st);
+    const { delta, newValue } = suggestionFor(s.value, st, stats[s.skillId]);
     return { skillId: s.skillId, key: s.key, label: s.label, value: s.value, stars: st, delta, newValue };
   });
   const hasChanges = rows.some(r => r.delta !== 0);
@@ -425,6 +441,12 @@ const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, 
   // write the new squad values. No-op when nothing meaningful was suggested.
   useImperativeHandle(ref, () => ({
     commit: async () => {
+      // Every star rating given is a data point for the moving average (#48),
+      // recorded on submit independent of whether the suggestion is applied.
+      const rated = rows.filter(r => r.stars > 0);
+      if (rated.length) {
+        await recordSkillRatings(player.id, player.position, rated.map(r => ({ skillId: r.skillId, value: r.stars * STAR_TO_100 })), "eval");
+      }
       if (!hasChanges) return;
       const apply = willApply;
       if (apply) {
@@ -513,6 +535,9 @@ const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, 
       {modal && (
         <Modal onClose={() => setModal(false)}>
           <SectionLabel>{t.suggested_changes}</SectionLabel>
+          <div style={{ marginBottom: 14, fontSize: 12, color: "var(--muted)", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon name="journey" size={14} color="var(--brand)" /> {t.avg_suggestion_note}
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {rows.map(r => (
               <div key={r.key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>

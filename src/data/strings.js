@@ -32,6 +32,7 @@ export const t = {
   suggest_improvements: "Suggest improvements", apply_to_squad: "Apply to squad",
   review_suggestion: "Review suggestion", suggested_changes: "Suggested squad adjustments",
   approve_apply: "Approve & apply", decline: "Decline", no_changes: "No changes suggested",
+  avg_suggestion_note: "Suggested values are the running average of all ratings for each skill, including this one.",
   applied_to_squad: "Applied to squad ratings.", rate_all_hint: "Rate every skill to continue.",
   applies_on_submit: "Applies to squad on submit", approved_on_submit: "Approved — applies on submit",
   edit_ratings: "Edit",

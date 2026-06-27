@@ -4,7 +4,7 @@ import { Avatar, Card, Icon, SectionLabel, SkillBar, ratingColor, overall, AVAIL
 import { POSITIONS, POSITION_LINE, FEET } from "../data/static.js";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
-import { updatePlayer, savePlayerSkills, ensurePositionRatings, getPlayerAttendance, setPlayerActive } from "../lib/api.js";
+import { updatePlayer, savePlayerSkills, ensurePositionRatings, getPlayerAttendance, recordSkillRatings, setPlayerActive } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
 const heroInput = {
@@ -90,6 +90,12 @@ function Profile({ player, onSaved, onBack, onDeactivated }) {
     try {
       const entries = player.skillList.map(s => ({ skillId: s.skillId, value: skillVals[s.key] }));
       await savePlayerSkills(player.id, player.position, entries);
+      // Record manual edits as rating data points so they feed the Technical
+      // Skills card's running-average suggestion (#48).
+      const changed = player.skillList
+        .filter(s => skillVals[s.key] !== s.value)
+        .map(s => ({ skillId: s.skillId, value: skillVals[s.key] }));
+      if (changed.length) await recordSkillRatings(player.id, player.position, changed, "manual");
       const updated = {
         ...player,
         skillList: player.skillList.map(s => ({ ...s, value: skillVals[s.key] })),
