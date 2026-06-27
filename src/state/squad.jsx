@@ -32,6 +32,13 @@ export function SquadProvider({ children }) {
     setPlayers(prev => prev.map(p => (p.id === updated.id ? updated : p)));
   }, []);
 
+  // Drops a player from the in-memory roster after a soft-delete (#47).
+  const removePlayer = useCallback((id) => {
+    setPlayers(prev => prev.filter(p => p.id !== id));
+  }, []);
+
+  return (
+    <SquadContext.Provider value={{ team, players, loading, error, reload: load, replacePlayer, removePlayer }}>
   const addPlayer = useCallback((player) => {
     setPlayers(prev => [...prev, player]);
   }, []);
