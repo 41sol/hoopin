@@ -68,12 +68,17 @@ const ctxInput = {
   width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 12,
   padding: "11px 12px", fontFamily: "inherit", fontSize: 14, color: "var(--ink)", background: "var(--card)", outline: "none",
 };
-// Secondary "Suggest best XI" action (US-7) — outlined brand pill.
-const suggestBtn = {
+// Secondary "Suggest best XI" action (US-7). The filled brand look is the
+// "active" state, shown only while the suggested XI is actually applied; once
+// the coach edits or loads a different lineup it drops to a neutral outline so
+// the button reads as an available action rather than a toggle that's stuck on.
+const suggestBtnBase = {
   display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
-  border: "1px solid var(--brand)", background: "var(--brand-tint)", color: "var(--brand-deep)",
   borderRadius: 12, padding: "7px 13px", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+  border: "1px solid", transition: "background .14s, color .14s, border-color .14s",
 };
+const suggestBtnActive = { ...suggestBtnBase, borderColor: "var(--brand)", background: "var(--brand-tint)", color: "var(--brand-deep)" };
+const suggestBtnIdle = { ...suggestBtnBase, borderColor: "var(--line-strong)", background: "var(--card)", color: "var(--muted)" };
 
 export default function LineupScreen() {
   const { players, team, loading, error } = useSquad();
@@ -264,7 +269,7 @@ function Builder({ players, team, formations, ratings }) {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <Segmented size="sm" value={formationId} onChange={changeFormation}
             options={formations.map(f => ({ value: f.id, label: f.name }))} />
-          <button onClick={suggestNow} style={suggestBtn}>
+          <button onClick={suggestNow} style={suggested ? suggestBtnActive : suggestBtnIdle}>
             <Icon name="trophy" size={16} stroke={2.2} />
             {t.suggest_xi}
           </button>
