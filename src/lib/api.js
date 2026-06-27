@@ -35,14 +35,23 @@ const PLAYER_SELECT = `
   player_skills ( value, position, skill:skills ( id, key, label, sort_order, line ) )
 `;
 
+// Active roster only — deactivated (soft-deleted) players are hidden (#47).
 export async function getPlayers(teamId) {
   const { data, error } = await supabase
     .from("players")
     .select(PLAYER_SELECT)
     .eq("team_id", teamId)
+    .eq("active", true)
     .order("number", { ascending: true });
   if (error) throw error;
   return (data || []).map(shapePlayer);
+}
+
+// Soft-delete toggle: mark a player inactive (or restore). The row is kept in
+// the database; active roster reads filter it out (#47).
+export async function setPlayerActive(id, active) {
+  const { error } = await supabase.from("players").update({ active }).eq("id", id);
+  if (error) throw error;
 }
 
 // Flattens the nested skills join into both an ordered list and a key→value map.
@@ -272,7 +281,7 @@ export async function getFormations() {
 // the per-position overalls shown elsewhere.
 export async function getPositionRatings(teamId) {
   const { data: roster, error: e0 } = await supabase
-    .from("players").select("id").eq("team_id", teamId);
+    .from("players").select("id").eq("team_id", teamId).eq("active", true);
   if (e0) throw e0;
   const ids = (roster || []).map(r => r.id);
   if (!ids.length) return {};

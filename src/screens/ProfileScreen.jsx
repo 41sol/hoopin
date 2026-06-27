@@ -4,7 +4,7 @@ import { Avatar, Card, Icon, SectionLabel, SkillBar, ratingColor, overall, AVAIL
 import { POSITIONS, POSITION_LINE, FEET } from "../data/static.js";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
-import { updatePlayer, savePlayerSkills, ensurePositionRatings, getPlayerAttendance } from "../lib/api.js";
+import { updatePlayer, savePlayerSkills, ensurePositionRatings, getPlayerAttendance, setPlayerActive } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
 const heroInput = {
@@ -21,16 +21,18 @@ const stepBtn = {
 export default function ProfileScreen() {
   const { playerId } = useParams();
   const navigate = useNavigate();
-  const { players, loading, replacePlayer } = useSquad();
+  const { players, loading, replacePlayer, removePlayer } = useSquad();
   const player = players.find(p => p.id === playerId);
 
   if (loading && !player) return <StateNote>Loading profile…</StateNote>;
   if (!player) return <StateNote tone="error">Player not found. <button onClick={() => navigate("/squad")} style={{ marginInlineStart: 8, color: "var(--brand)", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>Back to squad</button></StateNote>;
 
-  return <Profile key={player.id} player={player} onSaved={replacePlayer} onBack={() => navigate("/squad")} />;
+  const onDeactivated = (id) => { removePlayer(id); navigate("/squad"); };
+
+  return <Profile key={player.id} player={player} onSaved={replacePlayer} onBack={() => navigate("/squad")} onDeactivated={onDeactivated} />;
 }
 
-function Profile({ player, onSaved, onBack }) {
+function Profile({ player, onSaved, onBack, onDeactivated }) {
   // ----- identity edit -----
   const [editDetails, setEditDetails] = useState(false);
   const [form, setForm] = useState(null);
@@ -99,6 +101,20 @@ function Profile({ player, onSaved, onBack }) {
       alert("Couldn't save skills: " + (e.message || e));
     } finally {
       setSavingSkills(false);
+    }
+  };
+
+  // ----- deactivate (soft delete, #47) -----
+  const [deactivating, setDeactivating] = useState(false);
+  const deactivate = async () => {
+    if (!window.confirm(t.confirm_deactivate)) return;
+    setDeactivating(true);
+    try {
+      await setPlayerActive(player.id, false);
+      onDeactivated(player.id);
+    } catch (e) {
+      alert("Couldn't deactivate the player: " + (e.message || e));
+      setDeactivating(false);
     }
   };
 
@@ -241,6 +257,21 @@ function Profile({ player, onSaved, onBack }) {
         {/* Attendance — real per-session records logged on the Evaluation screen (US-4) */}
         <AttendanceLog playerId={player.id} />
       </div>
+
+      {/* Deactivate (soft delete, #47) — hides the player from the squad; record is kept */}
+      {!editDetails && !editSkills && (
+        <div style={{ marginTop: 20, display: "flex", justifyContent: "center" }}>
+          <button onClick={deactivate} disabled={deactivating} style={{
+            display: "inline-flex", alignItems: "center", gap: 7,
+            border: "1px solid rgba(220,38,38,.4)", background: "var(--card)", color: "#DC2626",
+            padding: "10px 18px", borderRadius: 999, fontSize: 13.5, fontWeight: 700,
+            cursor: deactivating ? "default" : "pointer", fontFamily: "inherit",
+          }}>
+            <Icon name="trash" size={15} color="#DC2626" stroke={2.2} />
+            {deactivating ? t.deactivating : t.deactivate_player}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
