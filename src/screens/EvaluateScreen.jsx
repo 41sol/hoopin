@@ -355,16 +355,19 @@ function AttendanceCard({ player, teamId, date, type }) {
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const STAR_TO_100 = 20; // 5 stars == 100, matching the simplified card's mapping.
 
-// Per-skill suggestion = the true running average across ALL of the player's
-// recorded ratings for this skill plus the new one just given (stars×20). This
-// replaces the old capped ±10 nudge (#48). `stat` is { sum, count } of the prior
-// data points (eval + manual). With no prior ratings the average is the new
-// rating itself.
+// Per-skill suggestion = a cumulative running average (#48). The current squad
+// value is treated as the old average of the player's previous ratings, and the
+// new rating (stars×20, so 1★=20 … 5★=100) is blended in:
+//   newAvg = (oldAvg × N + ratingValue) / (N + 1)
+// where N = number of previous ratings for this skill (`stat.count`). Because the
+// current value is the old average, any rating ≥ the current value can never pull
+// it down. Rounded half-up to the nearest whole point (Math.round, values are
+// non-negative): e.g. (70×12 + 100)/13 = 72.3 → 72; 73.5 → 74.
 function suggestionFor(value, stars, stat) {
   if (!stars) return { delta: 0, newValue: value };
-  const sum = (stat?.sum || 0) + stars * STAR_TO_100;
-  const count = (stat?.count || 0) + 1;
-  const newValue = clamp(Math.round(sum / count), 0, 100);
+  const ratingValue = stars * STAR_TO_100; // 1★=20 … 5★=100
+  const n = stat?.count || 0;              // previous ratings for this skill
+  const newValue = clamp(Math.round((value * n + ratingValue) / (n + 1)), 0, 100);
   return { delta: newValue - value, newValue };
 }
 
