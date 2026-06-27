@@ -29,6 +29,19 @@ export async function getSkills() {
   return data;
 }
 
+// Position-specific sub-skills for a given pitch line (GK/DEF/MID/FWD), ordered.
+// Legacy generic skills (line = null) are excluded so the set matches the
+// per-position ratings shown elsewhere.
+export async function getLineSkills(line) {
+  const { data, error } = await supabase
+    .from("skills")
+    .select("id, key, label, sort_order, line")
+    .eq("line", line)
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
 const PLAYER_SELECT = `
   id, team_id, name, number, position, line, age, height_cm, weight_kg, foot,
   availability, attendance_pct,
@@ -67,6 +80,39 @@ function shapePlayer(row) {
   const skills = Object.fromEntries(skillList.map(s => [s.key, s.value]));
   const { player_skills, ...rest } = row;
   return { ...rest, skillList, skills };
+}
+
+// Creates a new player and seeds their position sub-skills. `skills` is
+// [{ skillId, value }] — the position's sub-skill set, each defaulting to 50 in
+// the form. Returns the shaped player so callers can add it to the squad in place.
+export async function createPlayer({ teamId, name, number, position, line, age, height_cm, weight_kg, foot, availability, skills }) {
+  const { data: created, error } = await supabase
+    .from("players")
+    .insert({
+      team_id: teamId,
+      name,
+      number: number ?? null,
+      position,
+      line,
+      age: age ?? null,
+      height_cm: height_cm ?? null,
+      weight_kg: weight_kg ?? null,
+      foot: foot ?? null,
+      availability: availability || "in",
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  const rows = (skills || []).map(s => ({ player_id: created.id, position, skill_id: s.skillId, value: s.value }));
+  if (rows.length) {
+    const { error: e2 } = await supabase.from("player_skills").insert(rows);
+    if (e2) throw e2;
+  }
+
+  const { data: full, error: e3 } = await supabase.from("players").select(PLAYER_SELECT).eq("id", created.id).single();
+  if (e3) throw e3;
+  return shapePlayer(full);
 }
 
 export async function updatePlayer(id, patch) {

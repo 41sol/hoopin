@@ -15,6 +15,12 @@ export const t = {
   age: "Age", height: "Height", weight: "Weight", pos: "Position", foot: "Foot", number: "Number",
   overall: "Overall", availability: "Availability",
   search_ph: "Search players…", sort: "Sort", filter: "Filter",
+  // Add player (#46)
+  add_player: "Add Player", add_player_title: "New player",
+  player_name: "Full name", player_name_ph: "e.g. Omar Khaled",
+  create_player: "Create player", creating: "Creating…",
+  name_required: "Please enter the player's name.",
+  skills_default_hint: "Skill ratings start at 50 — adjust any before creating.",
   // Evaluation
   select_player: "Select player", session: "Session", date: "Date",
   type_training: "Training", type_match: "Match", opponent: "Opponent",

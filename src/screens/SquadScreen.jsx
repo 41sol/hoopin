@@ -69,6 +69,13 @@ export default function SquadScreen() {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".04em" }}>{t.sort}</span>
           {SORTS.map(s => <Chip key={s.id} active={sort === s.id} onClick={() => setSort(s.id)}>{s.label}</Chip>)}
+          <button onClick={() => navigate("/squad/new")} style={{
+            display: "inline-flex", alignItems: "center", gap: 6, border: "none", background: "var(--brand)",
+            color: "#fff", padding: "8px 14px", borderRadius: 999, fontSize: 12.5, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 12px var(--brand-glow)",
+          }}>
+            <Icon name="plus" size={15} stroke={2.6} /> {t.add_player}
+          </button>
         </div>
       </div>
 
