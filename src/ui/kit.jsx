@@ -157,8 +157,8 @@ export function Card({ children, style, pad = 16, ...rest }) {
 
 export function SectionLabel({ children, action }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-      <h3 style={{ margin: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)" }}>{children}</h3>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+      <h3 style={{ margin: 0, minWidth: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)" }}>{children}</h3>
       {action}
     </div>
   );

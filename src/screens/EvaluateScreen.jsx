@@ -453,7 +453,7 @@ const AdvancedTechnical = forwardRef(function AdvancedTechnical({ player, team, 
             options={[{ value: false, label: "Off" }, { value: true, label: "On" }]} />
         </span>
       }>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ width: 24, height: 24, borderRadius: 8, background: "var(--brand-tint)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Icon name="football" size={14} color="var(--brand)" />
           </span>
