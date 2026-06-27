@@ -122,6 +122,19 @@ a { color: inherit; text-decoration: none; }
   .bench-list { flex-wrap: wrap; overflow-x: visible; }
 }
 
+/* Match-context toolbar. Fields share a row on wider screens but stack to full
+   width on narrow phones so Match date / Opponent don't cram and overlap (#36). */
+.lineup-context { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.lineup-context > label { display: flex; flex-direction: column; gap: 6px; flex: 1 1 160px; }
+.lineup-context > label.lc-wide { flex-basis: 100%; }
+@media (max-width: 559px) { .lineup-context > label { flex-basis: 100%; } }
+
+/* Pitch keeps a 3:4 ratio but is capped + centred on mobile so it doesn't grow
+   disproportionately large on wider phones/tablets; full size in the desktop
+   two-column grid (#36). */
+.lineup-pitch { width: 100%; max-width: 360px; margin-inline: auto; aspect-ratio: 3 / 4; }
+@media (min-width: 900px) { .lineup-pitch { max-width: none; margin-inline: 0; } }
+
 /* ---------- Journey dashboard layout ---------- */
 .journey-grid { display: grid; gap: 14px; grid-template-columns: 1fr; align-items: start; }
 @media (min-width: 900px) { .journey-grid { grid-template-columns: 1fr 1fr; } }

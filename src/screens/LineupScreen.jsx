@@ -230,8 +230,8 @@ function Builder({ players, team, formations, ratings }) {
     <div style={{ userSelect: "none" }}>
       {/* Match context toolbar */}
       <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: "1 1 150px" }}>
+        <div className="lineup-context">
+          <label>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>{t.load_lineup}</span>
             <select value={currentId || ""} onChange={e => (e.target.value ? loadExisting(e.target.value) : newLineup())} style={ctxInput}>
               <option value="">{t.new_lineup}</option>
@@ -244,15 +244,15 @@ function Builder({ players, team, formations, ratings }) {
               ))}
             </select>
           </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: "1 1 100%" }}>
+          <label className="lc-wide">
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>{t.lineup_name}</span>
             <input value={name} onChange={e => setName(e.target.value)} placeholder={t.lineup_name_ph} style={ctxInput} />
           </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: "1 1 140px" }}>
+          <label>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>{t.match_date}</span>
             <input type="date" value={matchDate} onChange={e => setMatchDate(e.target.value)} style={ctxInput} />
           </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: "1 1 160px" }}>
+          <label>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>{t.opponent}</span>
             <input value={opponent} onChange={e => setOpponent(e.target.value)} placeholder={t.opponent_ph} style={ctxInput} />
           </label>
@@ -308,8 +308,8 @@ function Builder({ players, team, formations, ratings }) {
 
       <div className="lineup-grid">
         {/* Pitch */}
-        <div ref={pitchRef} style={{
-          position: "relative", width: "100%", aspectRatio: "3/4", borderRadius: 20, overflow: "hidden",
+        <div ref={pitchRef} className="lineup-pitch" style={{
+          position: "relative", borderRadius: 20, overflow: "hidden",
           background: "linear-gradient(160deg, #1d9c5e, #14823f)", boxShadow: "var(--shadow)", touchAction: "none",
         }}>
           <PitchMarkings />
