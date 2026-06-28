@@ -4,6 +4,7 @@ import { Card, Icon, SectionLabel, ratingColor, primaryBtn } from "../ui/kit.jsx
 import { POSITIONS, POSITION_LINE, FEET } from "../data/static.js";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
+import { useAcademy } from "../state/academy.jsx";
 import { getLineSkills, createPlayer } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
@@ -31,6 +32,7 @@ function Field({ label, children, flex }) {
 
 export default function AddPlayerScreen() {
   const navigate = useNavigate();
+  const { to } = useAcademy();
   const { team, addPlayer, loading } = useSquad();
 
   const [form, setForm] = useState({
@@ -83,7 +85,7 @@ export default function AddPlayerScreen() {
         skills: skills.map(s => ({ skillId: s.skillId, value: s.value })),
       });
       addPlayer(player);
-      navigate(`/squad/${player.id}`);
+      navigate(to(`/squad/${player.id}`));
     } catch (e) {
       setError(e.message || String(e));
     } finally {
@@ -96,7 +98,7 @@ export default function AddPlayerScreen() {
   return (
     <div style={{ maxWidth: 640, margin: "0 auto" }}>
       {/* Back link */}
-      <button onClick={() => navigate("/squad")} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", background: "none", color: "var(--muted)", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "2px 0", marginBottom: 12 }}>
+      <button onClick={() => navigate(to("/squad"))} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", background: "none", color: "var(--muted)", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "2px 0", marginBottom: 12 }}>
         <Icon name="chevL" size={18} /> {t.nav_squad}
       </button>
 

@@ -4,6 +4,7 @@ import { Avatar, Card, Icon, SectionLabel, SkillBar, ratingColor, overall, AVAIL
 import { POSITIONS, POSITION_LINE, FEET } from "../data/static.js";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
+import { useAcademy } from "../state/academy.jsx";
 import { updatePlayer, savePlayerSkills, ensurePositionRatings, getPlayerAttendance, recordSkillRatings, setPlayerActive } from "../lib/api.js";
 import StateNote from "../components/StateNote.jsx";
 
@@ -21,15 +22,16 @@ const stepBtn = {
 export default function ProfileScreen() {
   const { playerId } = useParams();
   const navigate = useNavigate();
+  const { to } = useAcademy();
   const { players, loading, replacePlayer, removePlayer } = useSquad();
   const player = players.find(p => p.id === playerId);
 
   if (loading && !player) return <StateNote>Loading profile…</StateNote>;
-  if (!player) return <StateNote tone="error">Player not found. <button onClick={() => navigate("/squad")} style={{ marginInlineStart: 8, color: "var(--brand)", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>Back to squad</button></StateNote>;
+  if (!player) return <StateNote tone="error">Player not found. <button onClick={() => navigate(to("/squad"))} style={{ marginInlineStart: 8, color: "var(--brand)", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>Back to squad</button></StateNote>;
 
-  const onDeactivated = (id) => { removePlayer(id); navigate("/squad"); };
+  const onDeactivated = (id) => { removePlayer(id); navigate(to("/squad")); };
 
-  return <Profile key={player.id} player={player} onSaved={replacePlayer} onBack={() => navigate("/squad")} onDeactivated={onDeactivated} />;
+  return <Profile key={player.id} player={player} onSaved={replacePlayer} onBack={() => navigate(to("/squad"))} onDeactivated={onDeactivated} />;
 }
 
 function Profile({ player, onSaved, onBack, onDeactivated }) {

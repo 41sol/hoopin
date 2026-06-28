@@ -3,14 +3,55 @@ import { supabase } from "./supabase.js";
 /* Data access for Screen 1. Each function throws on error so callers can
    surface it; reads are shaped into the structure the UI expects. */
 
-export async function getTeam() {
-  const { data, error } = await supabase
+export async function getTeam(academyId) {
+  let query = supabase
     .from("teams")
-    .select("id, name, age_group, sport, auto_apply_eval")
+    .select("id, name, age_group, sport, auto_apply_eval, academy_id")
     .order("created_at", { ascending: true })
-    .limit(1)
+    .limit(1);
+  // Scope to the active academy (US-13); RLS already restricts visibility, this
+  // keeps the right team selected for multi-academy users.
+  if (academyId) query = query.eq("academy_id", academyId);
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/* ---------- US-13: Multi-tenant academy context ---------- */
+
+// Resolve a /:academy_slug segment to an academy. RLS (academies_member_read)
+// returns a row only when the caller holds an active membership, so a null
+// result doubles as "unknown or unauthorized academy".
+export async function getAcademyBySlug(slug) {
+  const { data, error } = await supabase
+    .from("academies")
+    .select("id, slug, name")
+    .eq("slug", slug)
     .maybeSingle();
   if (error) throw error;
+  return data;
+}
+
+// Every academy the caller can see — i.e. holds a membership in (RLS-scoped).
+// Drives the academy switcher and the post-login landing redirect.
+export async function getMyAcademies() {
+  const { data, error } = await supabase
+    .from("academies")
+    .select("id, slug, name")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+// Switch the active tenant: the set-active-academy Edge Function pins the choice
+// into app_metadata, then we refresh the session so the next JWT carries the new
+// active_academy_id claim (re-running the access-token hook, US-12).
+export async function setActiveAcademy(academyId) {
+  const { data, error } = await supabase.functions.invoke("set-active-academy", {
+    body: { academy_id: academyId },
+  });
+  if (error) throw error;
+  await supabase.auth.refreshSession();
   return data;
 }
 

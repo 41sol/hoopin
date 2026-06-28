@@ -4,6 +4,7 @@ import { Avatar, Card, Icon, Pill, AvailDot, ratingColor, overall } from "../ui/
 import { LINES, LINE_LABEL } from "../data/static.js";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
+import { useAcademy } from "../state/academy.jsx";
 import StateNote from "../components/StateNote.jsx";
 
 const SORTS = [
@@ -30,6 +31,7 @@ function Chip({ active, onClick, children }) {
 
 export default function SquadScreen() {
   const { players, loading, error } = useSquad();
+  const { to } = useAcademy();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("overall");
@@ -69,7 +71,7 @@ export default function SquadScreen() {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".04em" }}>{t.sort}</span>
           {SORTS.map(s => <Chip key={s.id} active={sort === s.id} onClick={() => setSort(s.id)}>{s.label}</Chip>)}
-          <button onClick={() => navigate("/squad/new")} style={{
+          <button onClick={() => navigate(to("/squad/new"))} style={{
             display: "inline-flex", alignItems: "center", gap: 6, border: "none", background: "var(--brand)",
             color: "#fff", padding: "8px 14px", borderRadius: 999, fontSize: 12.5, fontWeight: 700,
             cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 12px var(--brand-glow)",
@@ -90,7 +92,7 @@ export default function SquadScreen() {
             {players.map(p => {
               const ov = overall(p.skills);
               return (
-                <Card key={p.id} pad={10} onClick={() => navigate(`/squad/${p.id}`)}
+                <Card key={p.id} pad={10} onClick={() => navigate(to(`/squad/${p.id}`))}
                   style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
                   <Avatar name={p.name} num={p.number} size={46} />
                   <div style={{ flex: 1, minWidth: 0 }}>

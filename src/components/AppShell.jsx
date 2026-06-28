@@ -3,8 +3,10 @@ import { Icon } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
 import { useAuth } from "../state/auth.jsx";
+import { useAcademy } from "../state/academy.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 
+// Paths are academy-relative (US-13); the active academy slug is prefixed below.
 const TABS = [
   { path: "/squad", icon: "squad", label: t.nav_squad, title: t.squad_title },
   { path: "/evaluate", icon: "eval", label: t.nav_eval, title: t.eval_title },
@@ -16,10 +18,11 @@ const TABS = [
 export default function AppShell() {
   const { team } = useSquad();
   const { signOut } = useAuth();
+  const { academy, myAcademies, switchAcademy, to } = useAcademy();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const active = TABS.find(tb => pathname.startsWith(tb.path)) || TABS[0];
-  const subtitle = team ? `${team.name} · ${team.age_group}` : "Loading…";
+  const active = TABS.find(tb => pathname.startsWith(to(tb.path))) || TABS[0];
+  const subtitle = team ? `${team.name} · ${team.age_group}` : (academy ? academy.name : "Loading…");
 
   async function handleSignOut() {
     await signOut();
@@ -37,8 +40,20 @@ export default function AppShell() {
             <div style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subtitle}</div>
           </div>
         </div>
+        {/* US-13: academy switcher — only shown to multi-academy users. */}
+        {myAcademies.length > 1 && (
+          <select
+            className="hp-field"
+            value={academy?.slug ?? ""}
+            onChange={(e) => switchAcademy(e.target.value)}
+            aria-label="Switch academy"
+            style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}
+          >
+            {myAcademies.map(a => <option key={a.id} value={a.slug}>{a.name}</option>)}
+          </select>
+        )}
         {TABS.map(tb => (
-          <NavLink key={tb.path} to={tb.path} className={({ isActive }) => "hp-navitem" + (isActive ? " active" : "")}>
+          <NavLink key={tb.path} to={to(tb.path)} className={({ isActive }) => "hp-navitem" + (isActive ? " active" : "")}>
             {({ isActive }) => (
               <>
                 <Icon name={tb.icon} size={21} stroke={isActive ? 2.3 : 1.9} color={isActive ? "var(--brand)" : "var(--muted)"} />
@@ -78,7 +93,7 @@ export default function AppShell() {
       {/* Bottom nav (mobile) */}
       <nav className="hp-bottomnav">
         {TABS.map(tb => (
-          <NavLink key={tb.path} to={tb.path} className={({ isActive }) => "hp-tab" + (isActive ? " active" : "")}>
+          <NavLink key={tb.path} to={to(tb.path)} className={({ isActive }) => "hp-tab" + (isActive ? " active" : "")}>
             {({ isActive }) => (
               <>
                 {isActive && <span className="hp-tab-dot" />}
