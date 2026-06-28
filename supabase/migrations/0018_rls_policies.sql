@@ -156,12 +156,17 @@ create policy team_assignments_staff_write on public.team_assignments
 
 -- ======================================================================
 -- Hardening: trim the RPC surface of the helper functions.
--- All policies above are `to authenticated`, so the anon role never needs to
--- evaluate the helpers; revoke its execute grant (left over from 0016) so the
--- SECURITY DEFINER functions aren't callable session-less via /rest/v1/rpc.
--- handle_new_user is a trigger function and should not be callable at all.
+-- Postgres grants EXECUTE to PUBLIC on every new function, so we revoke from
+-- PUBLIC (which also covers anon) and re-grant only to authenticated — all
+-- policies above are `to authenticated`, so anon never needs the helpers. This
+-- stops the SECURITY DEFINER helpers from being callable session-less via
+-- /rest/v1/rpc. handle_new_user is a trigger function and should not be callable
+-- at all.
 -- ======================================================================
-revoke execute on function public.is_academy_member(uuid) from anon;
-revoke execute on function public.has_academy_role(uuid, public.membership_role[]) from anon;
-revoke execute on function public.can_access_team(uuid) from anon;
-revoke execute on function public.handle_new_user() from anon, authenticated, public;
+revoke execute on function public.is_academy_member(uuid) from public, anon;
+revoke execute on function public.has_academy_role(uuid, public.membership_role[]) from public, anon;
+revoke execute on function public.can_access_team(uuid) from public, anon;
+grant execute on function public.is_academy_member(uuid) to authenticated;
+grant execute on function public.has_academy_role(uuid, public.membership_role[]) to authenticated;
+grant execute on function public.can_access_team(uuid) to authenticated;
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
