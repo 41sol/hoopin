@@ -4,6 +4,7 @@ import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
 import { useAuth } from "../state/auth.jsx";
 import { useAcademy } from "../state/academy.jsx";
+import { isAdminEmail } from "../lib/admin.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 
 // Paths are academy-relative (US-13); the active academy slug is prefixed below.
@@ -17,9 +18,10 @@ const TABS = [
 
 export default function AppShell() {
   const { team } = useSquad();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { academy, myAcademies, switchAcademy, to } = useAcademy();
   const navigate = useNavigate();
+  const isAdmin = isAdminEmail(user?.email);
   const { pathname } = useLocation();
   const active = TABS.find(tb => pathname.startsWith(to(tb.path))) || TABS[0];
   const subtitle = team ? `${team.name} · ${team.age_group}` : (academy ? academy.name : "Loading…");
@@ -78,6 +80,11 @@ export default function AppShell() {
             <Icon name="bell" size={20} color="var(--muted)" />
             <span style={{ position: "absolute", top: 7, insetInlineEnd: 8, width: 7, height: 7, borderRadius: "50%", background: "var(--brand)", border: "1.5px solid var(--card)" }} />
           </button>
+          {isAdmin && (
+            <button className="hp-iconbtn" onClick={() => navigate("/admin")} aria-label="User management" title="User management">
+              <Icon name="shield" size={20} color="var(--muted)" />
+            </button>
+          )}
           <button className="hp-iconbtn" onClick={handleSignOut} aria-label={t.logout} title={t.logout}>
             <Icon name="logout" size={20} color="var(--muted)" />
           </button>

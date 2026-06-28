@@ -4,8 +4,10 @@ import { AuthProvider, useAuth } from "./state/auth.jsx";
 import { AcademyProvider, useAcademy } from "./state/academy.jsx";
 import { SquadProvider } from "./state/squad.jsx";
 import { getMyAcademies } from "./lib/api.js";
+import { isAdminEmail } from "./lib/admin.js";
 import AppShell from "./components/AppShell.jsx";
 import LoginScreen from "./screens/LoginScreen.jsx";
+import AdminScreen from "./screens/AdminScreen.jsx";
 import AccessDenied from "./screens/AccessDenied.jsx";
 import SquadScreen from "./screens/SquadScreen.jsx";
 import AddPlayerScreen from "./screens/AddPlayerScreen.jsx";
@@ -32,6 +34,14 @@ function ProtectedRoute() {
   if (loading) return <CenterNote>{t.auth_loading}</CenterNote>;
   if (!session) return <Navigate to="/login" replace state={{ from: location }} />;
   return <Outlet />;
+}
+
+// Admin dashboard: render only for the single platform admin (backend is also
+// gated on the same email in the admin-users Edge Function).
+function RequireSuperAdmin({ children }) {
+  const { user } = useAuth();
+  if (!isAdminEmail(user?.email)) return <AccessDenied />;
+  return children;
 }
 
 // US-13: with no academy in the URL, send the user to their first academy.
@@ -77,6 +87,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginScreen />} />
           <Route element={<ProtectedRoute />}>
+            <Route path="admin" element={<RequireSuperAdmin><AdminScreen /></RequireSuperAdmin>} />
             <Route index element={<HomeRedirect />} />
             <Route path=":academySlug" element={<AcademyLayout />}>
               <Route index element={<Navigate to="squad" replace />} />

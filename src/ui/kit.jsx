@@ -31,6 +31,7 @@ const ICON = {
   whistle: "M3 12a5 5 0 0 0 5 5h3l6 3v-9a4 4 0 0 0-4-4H8a5 5 0 0 0-5 5zM18 9V6M16 5l2-2",
   filter: "M3 5h18M6 12h12M10 19h4",
   logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
+  shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z",
 };
 
 export function Icon({ name, size = 22, stroke = 2, fill = "none", color = "currentColor", style }) {
