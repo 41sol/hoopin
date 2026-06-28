@@ -1,0 +1,19 @@
+# Supabase local/dev configuration. The hosted project must mirror the auth
+# settings below in Dashboard → Authentication (the access-token hook and
+# enable_signup cannot be toggled via SQL migrations).
+project_id = "hoopin"
+
+[auth]
+# Invite-only: self-service registration is disabled (#53, #58). Users are
+# provisioned exclusively through the invite-user Edge Function (#58).
+enable_signup = false
+# Restrict where set-password / invite links may redirect (#58).
+additional_redirect_urls = ["http://localhost:5173", "http://localhost:5173/login"]
+
+[auth.email]
+enable_confirmations = true
+
+# US-12 (#54): enrich the access token with active_academy_id.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"
