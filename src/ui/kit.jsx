@@ -30,6 +30,7 @@ const ICON = {
   search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3",
   whistle: "M3 12a5 5 0 0 0 5 5h3l6 3v-9a4 4 0 0 0-4-4H8a5 5 0 0 0-5 5zM18 9V6M16 5l2-2",
   filter: "M3 5h18M6 12h12M10 19h4",
+  logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
 };
 
 export function Icon({ name, size = 22, stroke = 2, fill = "none", color = "currentColor", style }) {

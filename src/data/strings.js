@@ -69,4 +69,14 @@ export const t = {
   ann_deadline: "RSVP deadline (optional)", ann_pinned: "Pin to top", ann_rsvp: "Allow RSVP",
   post: "Post", save_changes: "Save changes", cancel: "Cancel",
   confirm_delete: "Delete this announcement?",
+  // Auth (US-11)
+  login_title: "Welcome back", login_subtitle: "Sign in to your academy",
+  login_email: "Email", login_email_ph: "you@academy.com",
+  login_password: "Password", login_password_ph: "Your password",
+  login_submit: "Sign in", login_busy: "Signing in…",
+  login_invite_note: "Access is invite-only. Ask your academy admin for an account.",
+  login_failed: "Couldn't sign in. Check your email and password.",
+  logout: "Sign out", auth_loading: "Loading…",
+  access_denied: "Access denied", access_denied_body: "You don't have access to this academy.",
+  back_to_app: "Back to app",
 };

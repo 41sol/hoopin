@@ -1,7 +1,8 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "../ui/kit.jsx";
 import { t } from "../data/strings.js";
 import { useSquad } from "../state/squad.jsx";
+import { useAuth } from "../state/auth.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 
 const TABS = [
@@ -14,9 +15,16 @@ const TABS = [
 
 export default function AppShell() {
   const { team } = useSquad();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const { pathname } = useLocation();
   const active = TABS.find(tb => pathname.startsWith(tb.path)) || TABS[0];
   const subtitle = team ? `${team.name} · ${team.age_group}` : "Loading…";
+
+  async function handleSignOut() {
+    await signOut();
+    navigate("/login", { replace: true });
+  }
 
   return (
     <div className="hp-app">
@@ -54,6 +62,9 @@ export default function AppShell() {
           <button className="hp-iconbtn" style={{ position: "relative" }} aria-label="Notifications">
             <Icon name="bell" size={20} color="var(--muted)" />
             <span style={{ position: "absolute", top: 7, insetInlineEnd: 8, width: 7, height: 7, borderRadius: "50%", background: "var(--brand)", border: "1.5px solid var(--card)" }} />
+          </button>
+          <button className="hp-iconbtn" onClick={handleSignOut} aria-label={t.logout} title={t.logout}>
+            <Icon name="logout" size={20} color="var(--muted)" />
           </button>
         </header>
 
