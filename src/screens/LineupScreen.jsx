@@ -316,7 +316,7 @@ function Builder({ players, team, formations, ratings }) {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <Segmented size="sm" value={formationId} onChange={changeFormation}
             options={formations.map(f => ({ value: f.id, label: f.name }))} />
-          <button onClick={suggestNow} style={suggested ? suggestBtnActive : suggestBtnIdle}>
+          <button onClick={suggestNow} aria-pressed={suggested} style={suggested ? suggestBtnActive : suggestBtnIdle}>
             <Icon name="trophy" size={16} stroke={2.2} />
             {t.suggest_xi}
           </button>

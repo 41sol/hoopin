@@ -160,7 +160,7 @@ function AnnouncementCard({ a, meId, onRsvp, onEdit, onDelete }) {
 
 function RsvpBtn({ active, color, icon, label, onClick }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} aria-pressed={active} style={{
       flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "10px 4px",
       borderRadius: 14, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
       border: "1.5px solid " + (active ? color : "var(--line)"),

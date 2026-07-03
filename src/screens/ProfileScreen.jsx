@@ -146,7 +146,8 @@ function Profile({ player, onSaved, onBack, onDeactivated }) {
       </button>
 
       {/* Hero */}
-      <div style={{ borderRadius: 24, padding: "18px 18px 16px", marginBottom: 16, background: "linear-gradient(150deg, var(--brand), var(--brand-deep))", color: "#fff", position: "relative", overflow: "hidden" }}>
+      {/* --ring vars: white focus rings — the brand-green ring is invisible on this gradient */}
+      <div style={{ borderRadius: 24, padding: "18px 18px 16px", marginBottom: 16, background: "linear-gradient(150deg, var(--brand), var(--brand-deep))", color: "#fff", position: "relative", overflow: "hidden", "--ring": "rgba(255,255,255,.95)", "--ring-soft": "rgba(255,255,255,.28)" }}>
         <div style={{ position: "absolute", insetInlineEnd: -30, top: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,.08)" }} />
         <div style={{ position: "absolute", insetInlineEnd: 30, bottom: -50, width: 110, height: 110, borderRadius: "50%", background: "rgba(255,255,255,.07)" }} />
 

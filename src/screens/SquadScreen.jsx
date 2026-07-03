@@ -19,7 +19,7 @@ const FILTERS = [
 
 function Chip({ active, onClick, children }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} aria-pressed={active} style={{
       border: "1px solid " + (active ? "var(--brand)" : "var(--line)"),
       background: active ? "var(--brand-tint)" : "var(--card)",
       color: active ? "var(--brand)" : "var(--muted)",
@@ -53,12 +53,13 @@ export default function SquadScreen() {
   return (
     <div>
       {/* Toolbar */}
-      <div style={{
+      <div className="hp-searchbar" style={{
         position: "relative", marginBottom: 14, display: "flex", alignItems: "center",
         background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, padding: "0 12px",
+        transition: "border-color .15s ease, box-shadow .15s ease",
       }}>
         <Icon name="search" size={18} color="var(--muted)" />
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder={t.search_ph}
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder={t.search_ph} aria-label={t.search_ph} type="search"
           style={{ border: "none", outline: "none", background: "none", flex: 1, padding: "13px 10px", fontFamily: "inherit", fontSize: 14.5, color: "var(--ink)" }} />
       </div>
 

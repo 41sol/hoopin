@@ -43,11 +43,19 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); width:
 button:focus-visible, a:focus-visible { outline-offset: 1px; }
 input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 1.5px var(--brand), 0 0 0 4px var(--brand-tint);
+  box-shadow: 0 0 0 1.5px var(--ring, var(--brand)), 0 0 0 4px var(--ring-soft, var(--brand-tint));
 }
 input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 1.5px var(--ring, var(--brand)), 0 0 0 4px var(--ring-soft, var(--brand-tint));
+}
+
+/* Search bar: the border lives on the wrapper, so focus is shown there
+   (focus-within) instead of ringing the borderless inner input. */
+.hp-searchbar:focus-within {
   box-shadow: 0 0 0 1.5px var(--brand), 0 0 0 4px var(--brand-tint);
 }
+.hp-searchbar input { -webkit-appearance: none; appearance: none; }
+.hp-searchbar input:focus, .hp-searchbar input:focus-visible { box-shadow: none; }
 
 /* ---------- Micro-interactions ----------
    Buttons get a shared transition + light press feedback; hover darkens very
@@ -146,6 +154,7 @@ button:not(:disabled):active { transform: scale(.97); }
 .hp-tab-dot {
   position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
   width: 18px; height: 3px; border-radius: 3px; background: var(--brand);
+  animation: hp-fade .2s ease;
 }
 
 /* ---------- Breakpoint: sidebar on desktop / large tablets, bottom nav below ---------- */

@@ -30,7 +30,7 @@ export default function JourneyScreen() {
         {players.map(p => {
           const on = p.id === player.id;
           return (
-            <button key={p.id} onClick={() => setPid(p.id)} style={{
+            <button key={p.id} onClick={() => setPid(p.id)} aria-pressed={on} style={{
               display: "flex", alignItems: "center", gap: 8,
               border: "1px solid " + (on ? "var(--brand)" : "var(--line)"),
               background: on ? "var(--brand-tint)" : "var(--card)", borderRadius: 999,

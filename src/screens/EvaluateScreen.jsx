@@ -167,13 +167,13 @@ function Evaluate({ players, team, criteria, replacePlayer }) {
       {picking && (
         <Card pad={6} style={{ marginBottom: 16, maxHeight: 280, overflowY: "auto" }}>
           {players.map(p => (
-            <div key={p.id} onClick={() => { setPid(p.id); setPicking(false); }}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px", borderRadius: 12, cursor: "pointer", background: p.id === pid ? "var(--brand-tint)" : "transparent" }}>
+            <button key={p.id} onClick={() => { setPid(p.id); setPicking(false); }} aria-pressed={p.id === pid}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px", borderRadius: 12, cursor: "pointer", background: p.id === pid ? "var(--brand-tint)" : "transparent", border: "none", width: "100%", textAlign: "start", font: "inherit" }}>
               <Avatar name={p.name} size={34} />
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{p.name}</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "var(--ink)", textAlign: "start" }}>{p.name}</span>
               <Pill color="brand">{p.position}</Pill>
               {p.id === pid && <Icon name="check" size={16} color="var(--brand)" stroke={3} />}
-            </div>
+            </button>
           ))}
         </Card>
       )}
@@ -331,7 +331,7 @@ function AttendanceCard({ player, teamId, date, type }) {
         {ATT_OPTS.map(o => {
           const active = status === o.value;
           return (
-            <button key={o.value} onClick={() => mark(o.value)} disabled={loading}
+            <button key={o.value} onClick={() => mark(o.value)} disabled={loading} aria-pressed={active}
               style={{
                 flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
                 padding: "12px 10px", borderRadius: 14, cursor: loading ? "default" : "pointer",
@@ -393,8 +393,8 @@ function DeltaBadge({ delta }) {
 
 function Modal({ children, onClose }) {
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "var(--card)", borderRadius: 20, border: "1px solid var(--line)", boxShadow: "var(--shadow)", padding: 18, width: "100%", maxWidth: 460, maxHeight: "85vh", overflowY: "auto" }}>
+    <div className="hp-modal-overlay" onClick={onClose} style={{ zIndex: 1000 }} role="dialog" aria-modal="true">
+      <div className="hp-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
         {children}
       </div>
     </div>
