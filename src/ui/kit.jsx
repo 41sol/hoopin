@@ -146,12 +146,12 @@ export function Pill({ children, color = "muted", solid }) {
   );
 }
 
-export function Card({ children, style, pad = 16, ...rest }) {
+export function Card({ children, style, pad = 16, className = "", ...rest }) {
+  // Base look comes from .hp-card (index.css) so hover states can live in CSS;
+  // clickable cards pick up a hover lift automatically via .hp-clickable.
+  const cls = ["hp-card", rest.onClick ? "hp-clickable" : "", className].filter(Boolean).join(" ");
   return (
-    <div {...rest} style={{
-      background: "var(--card)", borderRadius: 20, padding: pad,
-      border: "1px solid var(--line)", boxShadow: "var(--shadow)", ...style,
-    }}>{children}</div>
+    <div {...rest} className={cls} style={{ padding: pad, ...style }}>{children}</div>
   );
 }
 
@@ -172,7 +172,8 @@ export function StarRating({ value, onChange, max = 5, size = 34, readOnly = fal
       {Array.from({ length: max }).map((_, i) => {
         const active = i < value;
         return (
-          <button key={i} disabled={readOnly} onClick={readOnly ? undefined : () => onChange(i + 1 === value ? 0 : i + 1)} aria-label={`${i + 1} stars`}
+          <button key={i} disabled={readOnly} onClick={readOnly ? undefined : () => onChange(i + 1 === value ? 0 : i + 1)}
+            aria-label={`${i + 1} stars`} aria-pressed={active}
             style={{ border: "none", background: "none", padding: 2, cursor: readOnly ? "default" : "pointer", lineHeight: 0 }}>
             <Icon name="star" size={size} stroke={1.6} fill={active ? "current" : "none"}
               color={active ? "var(--brand)" : "var(--line-strong)"} />
@@ -214,7 +215,7 @@ export function Segmented({ options, value, onChange, size = "md" }) {
       {options.map(o => {
         const active = o.value === value;
         return (
-          <button key={o.value} onClick={() => onChange(o.value)}
+          <button key={o.value} onClick={() => onChange(o.value)} aria-pressed={active}
             style={{
               border: "none", cursor: "pointer", borderRadius: 9,
               padding: size === "sm" ? "6px 12px" : "8px 16px",

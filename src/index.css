@@ -33,6 +33,56 @@ body {
 h1, h2, h3, p { text-wrap: pretty; }
 button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-decoration: none; }
+::selection { background: var(--brand-tint); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); width: 16px; height: 16px; }
+
+/* ---------- Focus visibility (keyboard a11y) ----------
+   Inline styles reset `outline: none` on fields, so the ring is drawn with
+   box-shadow / outline from here — neither is ever set inline on focusables. */
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+button:focus-visible, a:focus-visible { outline-offset: 1px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1.5px var(--brand), 0 0 0 4px var(--brand-tint);
+}
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 1.5px var(--brand), 0 0 0 4px var(--brand-tint);
+}
+
+/* ---------- Micro-interactions ----------
+   Buttons get a shared transition + light press feedback; hover darkens very
+   slightly via filter (a property never set inline, so it composes with the
+   per-button inline backgrounds). Hover only where a pointer supports it. */
+button {
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease,
+              box-shadow .15s ease, filter .15s ease, transform .12s ease, opacity .15s ease;
+}
+button:not(:disabled):active { transform: scale(.97); }
+@media (hover: hover) {
+  button:not(:disabled):hover { filter: brightness(.97); }
+}
+
+/* Card base look lives in this class (kit.jsx's <Card>) so hover/interactive
+   states can be styled here; per-usage inline styles still override it. */
+.hp-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+.hp-clickable { transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+@media (hover: hover) {
+  .hp-clickable:hover {
+    transform: translateY(-1px);
+    border-color: var(--line-strong);
+    box-shadow: 0 4px 14px rgba(13,30,22,.09), 0 1px 2px rgba(13,30,22,.05);
+  }
+}
+.hp-clickable:active { transform: translateY(0) scale(.995); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
 
 /* ---------- Shell layout ---------- */
 .hp-app { display: flex; min-height: 100vh; }
@@ -149,12 +199,16 @@ a { color: inherit; text-decoration: none; }
 .hp-modal-overlay {
   position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
   background: rgba(13,21,18,.45); padding: 16px; backdrop-filter: blur(2px);
+  animation: hp-fade .18s ease;
 }
 .hp-modal {
   width: 100%; max-width: 520px; max-height: calc(100vh - 32px); overflow-y: auto;
   background: var(--card); border: 1px solid var(--line); border-radius: 22px;
   box-shadow: 0 24px 60px rgba(0,0,0,.3); padding: 20px;
+  animation: hp-rise .22s cubic-bezier(.2,.9,.3,1);
 }
+@keyframes hp-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes hp-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
 .hp-field { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 12px;
   padding: 11px 12px; font-family: inherit; font-size: 14px; color: var(--ink); background: var(--card); outline: none; }
 
