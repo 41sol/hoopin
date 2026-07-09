@@ -18,3 +18,25 @@ dist/
 .DS_Store
 Thumbs.db
 docs/pricing-sheet.md
+
+# Skill folders (not part of the product)
+**/ui-ux-pro-max/
+
+# AI tool / editor config folders (not part of the product)
+.cursor/
+.windsurf/
+.agents/
+.github/
+.kiro/
+.codex/
+.qoder/
+.roo/
+.gemini/
+.trae/
+.opencode/
+.continue/
+.codebuddy/
+.factory/
+.kilocode/
+.warp/
+.augment/
